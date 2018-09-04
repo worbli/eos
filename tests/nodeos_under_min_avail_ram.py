@@ -68,7 +68,7 @@ killEosInstances=not dontKill
 killWallet=not dontKill
 
 WalletdName="keosd"
-ClientName="cleos"
+ClientName="worbli"
 
 try:
     TestHelper.printSystemInfo("BEGIN")

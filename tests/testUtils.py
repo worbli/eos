@@ -13,7 +13,7 @@ class Utils:
     Debug=False
     FNull = open(os.devnull, 'w')
 
-    EosClientPath="programs/cleos/cleos"
+    EosClientPath="programs/worbli/worbli"
 
     EosWalletName="keosd"
     EosWalletPath="programs/keosd/"+ EosWalletName
