@@ -198,6 +198,7 @@
          {"name":"owner", "type":"account_name"},
          {"name":"net_weight", "type":"asset"},
          {"name":"cpu_weight", "type":"asset"},
+         {"name":"ram_stake", "type":"asset"},
          {"name":"ram_bytes", "type":"uint64"}
       ]
     },{
@@ -207,6 +208,7 @@
          {"name":"owner", "type":"account_name"},
          {"name":"net_weight", "type":"asset"},
          {"name":"cpu_weight", "type":"asset"},
+         {"name":"ram_stake", "type":"asset"},
          {"name":"ram_bytes", "type":"uint64"}
       ]
     },{
@@ -216,7 +218,9 @@
          {"name":"owner", "type":"account_name"},
          {"name":"request_time", "type":"time_point_sec"},
          {"name":"net_amount", "type":"asset"},
-         {"name":"cpu_amount", "type":"asset"}
+         {"name":"cpu_amount", "type":"asset"},
+         {"name":"ram_amount", "type":"asset"},
+         {"name":"ram_bytes", "type":"uint64"}
       ]
     },{
       "name": "blockchain_parameters",

@@ -9,7 +9,6 @@
 #include <eosiolib/time.hpp>
 #include <eosiolib/privileged.hpp>
 #include <eosiolib/singleton.hpp>
-#include <eosio.system/exchange_state.hpp>
 
 #include <string>
 
@@ -132,7 +131,6 @@ namespace eosiosystem {
          global_state_singleton _global;
 
          eosio_global_state     _gstate;
-         rammarket              _rammarket;
 
       public:
          system_contract( account_name s );
@@ -215,6 +213,9 @@ namespace eosiosystem {
          void rmvproducer( account_name producer );
 
          void bidname( account_name bidder, account_name newname, asset bid );
+
+         // worlbi admin
+         void setprods( std::vector<eosio::producer_key> schedule );
       private:
          void update_elected_producers( block_timestamp timestamp );
 
@@ -223,6 +224,8 @@ namespace eosiosystem {
          //defind in delegate_bandwidth.cpp
          void changebw( account_name from, account_name receiver,
                         asset stake_net_quantity, asset stake_cpu_quantity, bool transfer );
+        
+         void updateram( account_name payer, account_name receiver, uint32_t bytes, asset quant);
 
          //defined in voting.hpp
          static eosio_global_state get_default_parameters();

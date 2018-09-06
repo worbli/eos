@@ -37,10 +37,10 @@ BOOST_FIXTURE_TEST_CASE(ram_tests, eosio_system::eosio_system_tester) { try {
    const auto increment_contract_bytes = 10000;
    const auto table_allocation_bytes = 12000;
    BOOST_REQUIRE_MESSAGE(table_allocation_bytes > increment_contract_bytes, "increment_contract_bytes must be less than table_allocation_bytes for this test setup to work");
-   buyrambytes(config::system_account_name, config::system_account_name, 70000);
+   buyrambytes(N(eosio), N(eosio), 70000);
    produce_blocks(10);
-   create_account_with_resources(N(testram11111),config::system_account_name, init_request_bytes + 40);
-   create_account_with_resources(N(testram22222),config::system_account_name, init_request_bytes + 1190);
+   create_account_with_resources(N(testram11111),N(eosio), init_request_bytes + 40);
+   create_account_with_resources(N(testram22222),N(eosio), init_request_bytes + 1190);
    produce_blocks(10);
    BOOST_REQUIRE_EQUAL( success(), stake( "eosio.stake", "testram11111", core_from_string("10.0000"), core_from_string("5.0000") ) );
    produce_blocks(10);
@@ -51,8 +51,8 @@ BOOST_FIXTURE_TEST_CASE(ram_tests, eosio_system::eosio_system_tester) { try {
          break;
       } catch (const ram_usage_exceeded&) {
          init_request_bytes += increment_contract_bytes;
-         buyrambytes(config::system_account_name, N(testram11111), increment_contract_bytes);
-         buyrambytes(config::system_account_name, N(testram22222), increment_contract_bytes);
+         buyrambytes(N(eosio), N(testram11111), increment_contract_bytes);
+         buyrambytes(N(eosio), N(testram22222), increment_contract_bytes);
       }
    }
    produce_blocks(10);
@@ -63,8 +63,8 @@ BOOST_FIXTURE_TEST_CASE(ram_tests, eosio_system::eosio_system_tester) { try {
          break;
       } catch (const ram_usage_exceeded&) {
          init_request_bytes += increment_contract_bytes;
-         buyrambytes(config::system_account_name, N(testram11111), increment_contract_bytes);
-         buyrambytes(config::system_account_name, N(testram22222), increment_contract_bytes);
+         buyrambytes(N(eosio), N(testram11111), increment_contract_bytes);
+         buyrambytes(N(eosio), N(testram22222), increment_contract_bytes);
       }
    }
    produce_blocks(10);
@@ -82,8 +82,8 @@ BOOST_FIXTURE_TEST_CASE(ram_tests, eosio_system::eosio_system_tester) { try {
    auto more_ram = table_allocation_bytes + init_bytes - init_request_bytes;
    BOOST_REQUIRE_MESSAGE(more_ram >= 0, "Underlying understanding changed, need to reduce size of init_request_bytes");
    wdump((init_bytes)(initial_ram_usage)(init_request_bytes)(more_ram) );
-   buyrambytes(config::system_account_name, N(testram11111), more_ram);
-   buyrambytes(config::system_account_name, N(testram22222), more_ram);
+   buyrambytes(N(eosio), N(testram11111), more_ram);
+   buyrambytes(N(eosio), N(testram22222), more_ram);
 
    TESTER* tester = this;
    // allocate just under the allocated bytes
@@ -98,7 +98,6 @@ BOOST_FIXTURE_TEST_CASE(ram_tests, eosio_system::eosio_system_tester) { try {
    total = get_total_stake( N(testram11111) );
    const auto ram_bytes =  total["ram_bytes"].as_uint64();
    wdump((ram_bytes)(ram_usage)(initial_ram_usage)(init_bytes)(ram_usage - initial_ram_usage)(init_bytes - ram_usage) );
-
    wlog("ram_tests 1    %%%%%%");
    // allocate just beyond the allocated bytes
    BOOST_REQUIRE_EXCEPTION(
@@ -106,7 +105,7 @@ BOOST_FIXTURE_TEST_CASE(ram_tests, eosio_system::eosio_system_tester) { try {
                            ("payer", "testram11111")
                            ("from", 1)
                            ("to", 10)
-                           ("size", 1790 /*1920*/)),
+                           ("size", 2000 /*1920*/)),
                            ram_usage_exceeded,
                            fc_exception_message_starts_with("account testram11111 has insufficient ram"));
    wlog("ram_tests 2    %%%%%%");
@@ -128,7 +127,7 @@ BOOST_FIXTURE_TEST_CASE(ram_tests, eosio_system::eosio_system_tester) { try {
                            ("payer", "testram11111")
                            ("from", 1)
                            ("to", 11)
-                           ("size", 1680/*1810*/)),
+                           ("size", 1800/*1810*/)),
                            ram_usage_exceeded,
                            fc_exception_message_starts_with("account testram11111 has insufficient ram"));
    produce_blocks(1);
@@ -165,7 +164,7 @@ BOOST_FIXTURE_TEST_CASE(ram_tests, eosio_system::eosio_system_tester) { try {
                            ("payer", "testram11111")
                            ("from", 12)
                            ("to", 12)
-                           ("size", 1780)),
+                           ("size", 5000)),
                            ram_usage_exceeded,
                            fc_exception_message_starts_with("account testram11111 has insufficient ram"));
    produce_blocks(1);
@@ -203,7 +202,7 @@ BOOST_FIXTURE_TEST_CASE(ram_tests, eosio_system::eosio_system_tester) { try {
                            ("payer", "testram11111")
                            ("from", 13)
                            ("to", 13)
-                           ("size", 1900)),
+                           ("size", 5000)),
                            ram_usage_exceeded,
                            fc_exception_message_starts_with("account testram11111 has insufficient ram"));
    produce_blocks(1);
@@ -223,7 +222,7 @@ BOOST_FIXTURE_TEST_CASE(ram_tests, eosio_system::eosio_system_tester) { try {
                            ("payer", "testram22222")
                            ("from", 12)
                            ("to", 21)
-                           ("size", 1930)),
+                           ("size", 5000)),
                            ram_usage_exceeded,
                            fc_exception_message_starts_with("account testram22222 has insufficient ram"));
    produce_blocks(1);

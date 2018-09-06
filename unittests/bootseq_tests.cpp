@@ -64,9 +64,6 @@ std::vector<genesis_account> test_genesis( {
   {N(runnerup1),1'000'000'0000ll},
   {N(runnerup2),1'000'000'0000ll},
   {N(runnerup3),1'000'000'0000ll},
-  {N(minow1),        100'0000ll},
-  {N(minow2),          1'0000ll},
-  {N(minow3),          1'0000ll},
   {N(masses),800'000'000'0000ll}
 });
 
@@ -74,14 +71,14 @@ class bootseq_tester : public TESTER {
 public:
 
    fc::variant get_global_state() {
-      vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, N(global), N(global) );
+      vector<char> data = get_row_by_account( N(eosio), N(eosio), N(global), N(global) );
       if (data.empty()) std::cout << "\nData is empty\n" << std::endl;
       return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "eosio_global_state", data, abi_serializer_max_time );
 
    }
 
     auto buyram( name payer, name receiver, asset ram ) {
-       auto r = base_tester::push_action(config::system_account_name, N(buyram), payer, mvo()
+       auto r = base_tester::push_action(N(eosio), N(buyram), payer, mvo()
                     ("payer", payer)
                     ("receiver", receiver)
                     ("quant", ram)
@@ -91,7 +88,7 @@ public:
     }
 
     auto delegate_bandwidth( name from, name receiver, asset net, asset cpu, uint8_t transfer = 1) {
-       auto r = base_tester::push_action(config::system_account_name, N(delegatebw), from, mvo()
+       auto r = base_tester::push_action(N(eosio), N(delegatebw), from, mvo()
                     ("from", from )
                     ("receiver", receiver)
                     ("stake_net_quantity", net)
@@ -133,7 +130,7 @@ public:
     }
 
     auto register_producer(name producer) {
-       auto r = base_tester::push_action(config::system_account_name, N(regproducer), producer, mvo()
+       auto r = base_tester::push_action(N(eosio), N(regproducer), producer, mvo()
                        ("producer",  name(producer))
                        ("producer_key", get_public_key( producer, "active" ) )
                        ("url", "" )
@@ -145,7 +142,7 @@ public:
 
 
     auto undelegate_bandwidth( name from, name receiver, asset net, asset cpu ) {
-       auto r = base_tester::push_action(config::system_account_name, N(undelegatebw), from, mvo()
+       auto r = base_tester::push_action(N(eosio), N(undelegatebw), from, mvo()
                     ("from", from )
                     ("receiver", receiver)
                     ("unstake_net_quantity", net)
@@ -163,7 +160,7 @@ public:
        wdump((account));
         set_code(account, wast, signer);
         set_abi(account, abi, signer);
-        if (account == config::system_account_name) {
+        if (account == N(eosio)) {
            const auto& accnt = control->db().get<account_object,by_name>( account );
            abi_def abi_definition;
            BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
@@ -214,20 +211,20 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
         // Create genesis accounts
         for( const auto& a : test_genesis ) {
-           create_account( a.aname, config::system_account_name );
+           create_account( a.aname, N(eosio) );
         }
 
         // Set eosio.system to eosio
-        set_code_abi(config::system_account_name, eosio_system_wast, eosio_system_abi);
+        set_code_abi(N(eosio), eosio_system_wast, eosio_system_abi);
 
         // Buy ram and stake cpu and net for each genesis accounts
         for( const auto& a : test_genesis ) {
            auto ib = a.initial_balance;
-           auto ram = 1000;
+           auto ram = 1000000;
            auto net = (ib - ram) / 2;
            auto cpu = ib - net - ram;
 
-           auto r = buyram(config::system_account_name, a.aname, asset(ram));
+           auto r = buyram(N(eosio), a.aname, asset(ram));
            BOOST_REQUIRE( !r->except_ptr );
 
            r = delegate_bandwidth(N(eosio.stake), a.aname, asset(net), asset(cpu));
@@ -249,7 +246,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         // Vote for producers
         auto votepro = [&]( account_name voter, vector<account_name> producers ) {
           std::sort( producers.begin(), producers.end() );
-          base_tester::push_action(config::system_account_name, N(voteproducer), voter, mvo()
+          base_tester::push_action(N(eosio), N(voteproducer), voter, mvo()
                                 ("voter",  name(voter))
                                 ("proxy", name(0) )
                                 ("producers", producers)
@@ -262,7 +259,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         votepro( N(whale3), {N(proda), N(prodb), N(prodc), N(prodd), N(prode)} );
 
         // Total Stakes = b1 + whale2 + whale3 stake = (100,000,000 - 1,000) + (20,000,000 - 1,000) + (30,000,000 - 1,000)
-        BOOST_TEST(get_global_state()["total_activated_stake"].as<int64_t>() == 1499999997000);
+        BOOST_TEST(get_global_state()["total_activated_stake"].as<int64_t>() == 1499997000000);
 
         // No producers will be set, since the total activated stake is less than 150,000,000
         produce_blocks_for_n_rounds(2); // 2 rounds since new producer schedule is set when the first block of next round is irreversible
@@ -277,7 +274,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
         // This will increase the total vote stake by (40,000,000 - 1,000)
         votepro( N(whale4), {N(prodq), N(prodr), N(prods), N(prodt), N(produ)} );
-        BOOST_TEST(get_global_state()["total_activated_stake"].as<int64_t>() == 1899999996000);
+        BOOST_TEST(get_global_state()["total_activated_stake"].as<int64_t>() == 1899996000000);
 
         // Since the total vote stake is more than 150,000,000, the new producer set will be set
         produce_blocks_for_n_rounds(2); // 2 rounds since new producer schedule is set when the first block of next round is irreversible

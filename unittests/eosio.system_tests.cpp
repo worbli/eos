@@ -22,12 +22,8 @@ BOOST_FIXTURE_TEST_CASE( buysell, eosio_system_tester ) try {
    auto total = get_total_stake( "alice1111111" );
    auto init_bytes =  total["ram_bytes"].as_uint64();
 
-   const asset initial_ram_balance = get_balance(N(eosio.ram));
-   const asset initial_ramfee_balance = get_balance(N(eosio.ramfee));
    BOOST_REQUIRE_EQUAL( success(), buyram( "alice1111111", "alice1111111", core_from_string("200.0000") ) );
    BOOST_REQUIRE_EQUAL( core_from_string("800.0000"), get_balance( "alice1111111" ) );
-   BOOST_REQUIRE_EQUAL( initial_ram_balance + core_from_string("199.0000"), get_balance(N(eosio.ram)) );
-   BOOST_REQUIRE_EQUAL( initial_ramfee_balance + core_from_string("1.0000"), get_balance(N(eosio.ramfee)) );
 
    total = get_total_stake( "alice1111111" );
    auto bytes = total["ram_bytes"].as_uint64();
@@ -37,19 +33,23 @@ BOOST_FIXTURE_TEST_CASE( buysell, eosio_system_tester ) try {
    BOOST_REQUIRE_EQUAL( true, 0 < bought_bytes );
 
    BOOST_REQUIRE_EQUAL( success(), sellram( "alice1111111", bought_bytes ) );
-   BOOST_REQUIRE_EQUAL( core_from_string("998.0049"), get_balance( "alice1111111" ) );
+
+   auto refund = get_refund_request( "alice1111111" );
+
+   BOOST_REQUIRE_EQUAL( core_from_string("1000.0000"), get_balance( "alice1111111" ) + refund["ram_amount"].as<asset>());
    total = get_total_stake( "alice1111111" );
    BOOST_REQUIRE_EQUAL( true, total["ram_bytes"].as_uint64() == init_bytes );
 
    transfer( "eosio", "alice1111111", core_from_string("100000000.0000"), "eosio" );
-   BOOST_REQUIRE_EQUAL( core_from_string("100000998.0049"), get_balance( "alice1111111" ) );
+
+   BOOST_REQUIRE_EQUAL( core_from_string("100001000.0000"), get_balance( "alice1111111" ) + refund["ram_amount"].as<asset>() );
    // alice buys ram for 10000000.0000, 0.5% = 50000.0000 go to ramfee
    // after fee 9950000.0000 go to bought bytes
    // when selling back bought bytes, pay 0.5% fee and get back 99.5% of 9950000.0000 = 9900250.0000
    // expected account after that is 90000998.0049 + 9900250.0000 = 99901248.0049 with a difference
    // of order 0.0001 due to rounding errors
    BOOST_REQUIRE_EQUAL( success(), buyram( "alice1111111", "alice1111111", core_from_string("10000000.0000") ) );
-   BOOST_REQUIRE_EQUAL( core_from_string("90000998.0049"), get_balance( "alice1111111" ) );
+   BOOST_REQUIRE_EQUAL( core_from_string("90001000.0000"), get_balance( "alice1111111" ) );
 
    total = get_total_stake( "alice1111111" );
    bytes = total["ram_bytes"].as_uint64();
@@ -64,7 +64,9 @@ BOOST_FIXTURE_TEST_CASE( buysell, eosio_system_tester ) try {
    wdump((init_bytes)(bought_bytes)(bytes) );
 
    BOOST_REQUIRE_EQUAL( true, total["ram_bytes"].as_uint64() == init_bytes );
-   BOOST_REQUIRE_EQUAL( core_from_string("99901248.0041"), get_balance( "alice1111111" ) );
+
+   refund = get_refund_request( "alice1111111" );
+   BOOST_REQUIRE_EQUAL( core_from_string("100001000.6144"), get_balance( "alice1111111" ) + refund["ram_amount"].as<asset>());
 
    BOOST_REQUIRE_EQUAL( success(), buyram( "alice1111111", "alice1111111", core_from_string("100.0000") ) );
    BOOST_REQUIRE_EQUAL( success(), buyram( "alice1111111", "alice1111111", core_from_string("100.0000") ) );
@@ -75,7 +77,9 @@ BOOST_FIXTURE_TEST_CASE( buysell, eosio_system_tester ) try {
    BOOST_REQUIRE_EQUAL( success(), buyram( "alice1111111", "alice1111111", core_from_string("10.0000") ) );
    BOOST_REQUIRE_EQUAL( success(), buyram( "alice1111111", "alice1111111", core_from_string("10.0000") ) );
    BOOST_REQUIRE_EQUAL( success(), buyram( "alice1111111", "alice1111111", core_from_string("30.0000") ) );
-   BOOST_REQUIRE_EQUAL( core_from_string("99900688.0041"), get_balance( "alice1111111" ) );
+
+   refund = get_refund_request( "alice1111111" );
+   BOOST_REQUIRE_EQUAL( core_from_string("100000440.6144"), get_balance( "alice1111111" ) + refund["ram_amount"].as<asset>());
 
    auto newtotal = get_total_stake( "alice1111111" );
 
@@ -84,7 +88,8 @@ BOOST_FIXTURE_TEST_CASE( buysell, eosio_system_tester ) try {
    wdump((newbytes)(bytes)(bought_bytes) );
 
    BOOST_REQUIRE_EQUAL( success(), sellram( "alice1111111", bought_bytes ) );
-   BOOST_REQUIRE_EQUAL( core_from_string("99901242.4179"), get_balance( "alice1111111" ) );
+   refund = get_refund_request( "alice1111111" );
+   BOOST_REQUIRE_EQUAL( core_from_string("100001000.3938"), get_balance( "alice1111111" ) + refund["ram_amount"].as<asset>());
 
 
    newtotal = get_total_stake( "alice1111111" );
@@ -99,7 +104,9 @@ BOOST_FIXTURE_TEST_CASE( buysell, eosio_system_tester ) try {
    BOOST_REQUIRE_EQUAL( success(), buyram( "alice1111111", "alice1111111", core_from_string("100000.0000") ) );
    BOOST_REQUIRE_EQUAL( success(), buyram( "alice1111111", "alice1111111", core_from_string("100000.0000") ) );
    BOOST_REQUIRE_EQUAL( success(), buyram( "alice1111111", "alice1111111", core_from_string("300000.0000") ) );
-   BOOST_REQUIRE_EQUAL( core_from_string("49301242.4179"), get_balance( "alice1111111" ) );
+
+   // should be no refund so we don't include it in the assert.
+   BOOST_REQUIRE_EQUAL( core_from_string("49401000.3938"), get_balance( "alice1111111" ));
 
    auto finaltotal = get_total_stake( "alice1111111" );
    auto endbytes = finaltotal["ram_bytes"].as_uint64();
@@ -108,8 +115,8 @@ BOOST_FIXTURE_TEST_CASE( buysell, eosio_system_tester ) try {
    wdump((startbytes)(endbytes)(bought_bytes) );
 
    BOOST_REQUIRE_EQUAL( success(), sellram( "alice1111111", bought_bytes ) );
-
-   BOOST_REQUIRE_EQUAL( core_from_string("99396507.4142"), get_balance( "alice1111111" ) );
+   refund = get_refund_request( "alice1111111" );
+   BOOST_REQUIRE_EQUAL( core_from_string("100000998.6530"), get_balance( "alice1111111" ) + refund["ram_amount"].as<asset>());
 
 } FC_LOG_AND_RETHROW()
 
@@ -1191,12 +1198,12 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
 
 
    const asset large_asset = core_from_string("80.0000");
-   create_account_with_resources( N(defproducera), config::system_account_name, core_from_string("1.0000"), false, large_asset, large_asset );
-   create_account_with_resources( N(defproducerb), config::system_account_name, core_from_string("1.0000"), false, large_asset, large_asset );
-   create_account_with_resources( N(defproducerc), config::system_account_name, core_from_string("1.0000"), false, large_asset, large_asset );
+   create_account_with_resources( N(defproducera), config::system_account_name, core_from_string("1000.0000"), false, large_asset, large_asset );
+   create_account_with_resources( N(defproducerb), config::system_account_name, core_from_string("1000.0000"), false, large_asset, large_asset );
+   create_account_with_resources( N(defproducerc), config::system_account_name, core_from_string("1000.0000"), false, large_asset, large_asset );
 
-   create_account_with_resources( N(producvotera), config::system_account_name, core_from_string("1.0000"), false, large_asset, large_asset );
-   create_account_with_resources( N(producvoterb), config::system_account_name, core_from_string("1.0000"), false, large_asset, large_asset );
+   create_account_with_resources( N(producvotera), config::system_account_name, core_from_string("1000.0000"), false, large_asset, large_asset );
+   create_account_with_resources( N(producvoterb), config::system_account_name, core_from_string("1000.0000"), false, large_asset, large_asset );
 
    BOOST_REQUIRE_EQUAL(success(), regproducer(N(defproducera)));
    auto prod = get_producer_info( N(defproducera) );
@@ -1389,7 +1396,7 @@ BOOST_FIXTURE_TEST_CASE(multiple_producer_pay, eosio_system_tester, * boost::uni
    const asset cpu = core_from_string("80.0000");
    const std::vector<account_name> voters = { N(producvotera), N(producvoterb), N(producvoterc), N(producvoterd) };
    for (const auto& v: voters) {
-      create_account_with_resources( v, config::system_account_name, core_from_string("1.0000"), false, net, cpu );
+      create_account_with_resources( v, config::system_account_name, core_from_string("1000.0000"), false, net, cpu );
       transfer( config::system_account_name, v, core_from_string("100000000.0000"), config::system_account_name );
       BOOST_REQUIRE_EQUAL(success(), stake(v, core_from_string("30000000.0000"), core_from_string("30000000.0000")) );
    }
@@ -1792,9 +1799,9 @@ BOOST_FIXTURE_TEST_CASE(producers_upgrade_system_contract, eosio_system_tester) 
 BOOST_FIXTURE_TEST_CASE(producer_onblock_check, eosio_system_tester) try {
 
    const asset large_asset = core_from_string("80.0000");
-   create_account_with_resources( N(producvotera), config::system_account_name, core_from_string("1.0000"), false, large_asset, large_asset );
-   create_account_with_resources( N(producvoterb), config::system_account_name, core_from_string("1.0000"), false, large_asset, large_asset );
-   create_account_with_resources( N(producvoterc), config::system_account_name, core_from_string("1.0000"), false, large_asset, large_asset );
+   create_account_with_resources( N(producvotera), config::system_account_name, core_from_string("1000.0000"), false, large_asset, large_asset );
+   create_account_with_resources( N(producvoterb), config::system_account_name, core_from_string("1000.0000"), false, large_asset, large_asset );
+   create_account_with_resources( N(producvoterc), config::system_account_name, core_from_string("1000.0000"), false, large_asset, large_asset );
 
    // create accounts {defproducera, defproducerb, ..., defproducerz} and register as producers
    std::vector<account_name> producer_names;
@@ -1815,8 +1822,6 @@ BOOST_FIXTURE_TEST_CASE(producer_onblock_check, eosio_system_tester) try {
    transfer(config::system_account_name, "producvotera", core_from_string("200000000.0000"), config::system_account_name);
    BOOST_REQUIRE_EQUAL(success(), stake("producvotera", core_from_string("70000000.0000"), core_from_string("70000000.0000") ));
    BOOST_REQUIRE_EQUAL(success(), vote( N(producvotera), vector<account_name>(producer_names.begin(), producer_names.begin()+10)));
-   BOOST_CHECK_EQUAL( wasm_assert_msg( "cannot undelegate bandwidth until the chain is activated (at least 15% of all tokens participate in voting)" ),
-                      unstake( "producvotera", core_from_string("50.0000"), core_from_string("50.0000") ) );
 
    // give a chance for everyone to produce blocks
    {
@@ -2372,7 +2377,7 @@ BOOST_FIXTURE_TEST_CASE( vote_producers_in_and_out, eosio_system_tester ) try {
    const asset cpu = core_from_string("80.0000");
    std::vector<account_name> voters = { N(producvotera), N(producvoterb), N(producvoterc), N(producvoterd) };
    for (const auto& v: voters) {
-      create_account_with_resources(v, config::system_account_name, core_from_string("1.0000"), false, net, cpu);
+      create_account_with_resources(v, config::system_account_name, core_from_string("1000.0000"), false, net, cpu);
    }
 
    // create accounts {defproducera, defproducerb, ..., defproducerz} and register as producers
@@ -2540,7 +2545,7 @@ BOOST_FIXTURE_TEST_CASE( setram_effect, eosio_system_tester ) try {
    const asset cpu = core_from_string("8.0000");
    std::vector<account_name> accounts = { N(aliceaccount), N(bobbyaccount) };
    for (const auto& a: accounts) {
-      create_account_with_resources(a, config::system_account_name, core_from_string("1.0000"), false, net, cpu);
+      create_account_with_resources(a, config::system_account_name, core_from_string("1000.0000"), false, net, cpu);
    }
 
    {
@@ -2554,7 +2559,8 @@ BOOST_FIXTURE_TEST_CASE( setram_effect, eosio_system_tester ) try {
 
       // after buying and selling balance should be 700 + 300 * 0.995 * 0.995 = 997.0075 (actually 997.0074 due to rounding fees up)
       BOOST_REQUIRE_EQUAL( success(), sellram(name_a, bought_bytes_a ) );
-      BOOST_REQUIRE_EQUAL( core_from_string("997.0074"), get_balance(name_a) );
+      auto refund = get_refund_request( name_a );
+      BOOST_REQUIRE_EQUAL( core_from_string("1000.0000"), get_balance(name_a) + refund["ram_amount"].as<asset>());
    }
 
    {
@@ -2567,7 +2573,8 @@ BOOST_FIXTURE_TEST_CASE( setram_effect, eosio_system_tester ) try {
       BOOST_REQUIRE_EQUAL( core_from_string("700.0000"), get_balance(name_b) );
       const uint64_t bought_bytes_b = get_total_stake(name_b)["ram_bytes"].as_uint64() - init_bytes_b;
 
-      // increase max_ram_size, ram bought by name_b loses part of its value
+      // Mainnet: increase max_ram_size, ram bought by name_b loses part of its value
+      // Worbli: Increase in RAM should not affect value as sell price is calulated by resource usage and not max_ram
       BOOST_REQUIRE_EQUAL( wasm_assert_msg("ram may only be increased"),
                            push_action(config::system_account_name, N(setram), mvo()("max_ram_size", 64ll*1024 * 1024 * 1024)) );
       BOOST_REQUIRE_EQUAL( error("missing authority of eosio"),
@@ -2576,8 +2583,9 @@ BOOST_FIXTURE_TEST_CASE( setram_effect, eosio_system_tester ) try {
                            push_action(config::system_account_name, N(setram), mvo()("max_ram_size", 80ll*1024 * 1024 * 1024)) );
 
       BOOST_REQUIRE_EQUAL( success(), sellram(name_b, bought_bytes_b ) );
-      BOOST_REQUIRE( core_from_string("900.0000") < get_balance(name_b) );
-      BOOST_REQUIRE( core_from_string("950.0000") > get_balance(name_b) );
+      
+      auto refund = get_refund_request( name_b );
+      BOOST_REQUIRE_EQUAL( core_from_string("1000.0000"), get_balance(name_b) + refund["ram_amount"].as<asset>());
    }
 
 } FC_LOG_AND_RETHROW()

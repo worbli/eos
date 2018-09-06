@@ -78,9 +78,9 @@ public:
 
       produce_blocks();
 
-      create_account_with_resources( N(alice1111111), config::system_account_name, core_from_string("1.0000"), false );
-      create_account_with_resources( N(bob111111111), config::system_account_name, core_from_string("0.4500"), false );
-      create_account_with_resources( N(carol1111111), config::system_account_name, core_from_string("1.0000"), false );
+      create_account_with_resources( N(alice1111111), config::system_account_name, core_from_string("1000.0000"), false );
+      create_account_with_resources( N(bob111111111), config::system_account_name, core_from_string("450.0000"), false );
+      create_account_with_resources( N(carol1111111), config::system_account_name, core_from_string("1000.0000"), false );
 
       BOOST_REQUIRE_EQUAL( core_from_string("1000000000.0000"), get_balance("eosio")  + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram") );
    }
@@ -177,7 +177,7 @@ public:
       set_transaction_headers(trx);
       asset cpu = core_from_string("80.0000");
       asset net = core_from_string("80.0000");
-      asset ram = core_from_string("1.0000");
+      asset ram = core_from_string("1000.0000");
 
       for (const auto& a: accounts) {
          authority owner_auth( get_public_key( a, "owner" ) );
