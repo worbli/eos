@@ -4,11 +4,8 @@
 
 namespace eosiosystem {
 
-   const int64_t  min_pervote_daily_pay = 100'0000;
    const int64_t  min_activated_stake   = 150'000'000'0000;
-   const double   continuous_rate       = 0.04879;          // 5% annual rate
-   const double   perblock_rate         = 0.0025;           // 0.25%
-   const double   standby_rate          = 0.0075;           // 0.75%
+   const double   continuous_rate       = 0.058269;         // 6% annual rate
    const uint32_t blocks_per_year       = 52*7*24*2*3600;   // half seconds per year
    const uint32_t seconds_per_year      = 52*7*24*3600;
    const uint32_t blocks_per_day        = 2 * 24 * 3600;
@@ -36,7 +33,6 @@ namespace eosiosystem {
        */
       auto prod = _producers.find(producer);
       if ( prod != _producers.end() ) {
-         _gstate.total_unpaid_blocks++;
          _producers.modify( prod, 0, [&](auto& p ) {
                p.unpaid_blocks++;
          });
@@ -44,7 +40,7 @@ namespace eosiosystem {
 
       /// only update block producers once every minute, block_timestamp is in half seconds
       if( timestamp.slot - _gstate.last_producer_schedule_update.slot > 120 ) {
-         update_elected_producers( timestamp );
+         //update_elected_producers( timestamp );
 
          if( (timestamp.slot - _gstate.last_name_close.slot) > blocks_per_day ) {
             name_bid_table bids(_self,_self);
@@ -108,20 +104,19 @@ namespace eosiosystem {
       }
 
       int64_t producer_per_block_pay = 0;
-      if( _gstate.total_unpaid_blocks > 0 ) {
-         producer_per_block_pay = (_gstate.perblock_bucket * prod.unpaid_blocks) / _gstate.total_unpaid_blocks;
-      }
+     // if( _gstate.total_unpaid_blocks > 0 ) {
+     //    producer_per_block_pay = (_gstate.perblock_bucket * prod.unpaid_blocks) / _gstate.total_unpaid_blocks;
+      //}
       int64_t producer_per_vote_pay = 0;
-      if( _gstate.total_producer_vote_weight > 0 ) {
-         producer_per_vote_pay  = int64_t((_gstate.pervote_bucket * prod.total_votes ) / _gstate.total_producer_vote_weight);
-      }
-      if( producer_per_vote_pay < min_pervote_daily_pay ) {
-         producer_per_vote_pay = 0;
-      }
+      //if( _gstate.total_producer_vote_weight > 0 ) {
+      //   producer_per_vote_pay  = int64_t((_gstate.pervote_bucket * prod.total_votes ) / _gstate.total_producer_vote_weight);
+      //}
+      //if( producer_per_vote_pay < min_pervote_daily_pay ) {
+      //   producer_per_vote_pay = 0;
+      //}
       _gstate.pervote_bucket      -= producer_per_vote_pay;
       _gstate.perblock_bucket     -= producer_per_block_pay;
-      _gstate.total_unpaid_blocks -= prod.unpaid_blocks;
-
+ 
       _producers.modify( prod, 0, [&](auto& p) {
           p.last_claim_time = ct;
           p.unpaid_blocks = 0;
