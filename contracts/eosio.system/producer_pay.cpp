@@ -41,22 +41,6 @@ namespace eosiosystem {
       /// only update block producers once every minute, block_timestamp is in half seconds
       if( timestamp.slot - _gstate.last_producer_schedule_update.slot > 120 ) {
          //update_elected_producers( timestamp );
-
-         if( (timestamp.slot - _gstate.last_name_close.slot) > blocks_per_day ) {
-            name_bid_table bids(_self,_self);
-            auto idx = bids.get_index<N(highbid)>();
-            auto highest = idx.begin();
-            if( highest != idx.end() &&
-                highest->high_bid > 0 &&
-                highest->last_bid_time < (current_time() - useconds_per_day) &&
-                _gstate.thresh_activated_stake_time > 0 &&
-                (current_time() - _gstate.thresh_activated_stake_time) > 14 * useconds_per_day ) {
-                   _gstate.last_name_close = timestamp;
-                   idx.modify( highest, 0, [&]( auto& b ){
-                         b.high_bid = -b.high_bid;
-               });
-            }
-         }
       }
    }
 

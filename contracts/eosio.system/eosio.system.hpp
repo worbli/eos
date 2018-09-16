@@ -19,21 +19,6 @@ namespace eosiosystem {
    using eosio::const_mem_fun;
    using eosio::block_timestamp;
 
-   struct name_bid {
-     account_name            newname;
-     account_name            high_bidder;
-     int64_t                 high_bid = 0; ///< negative high_bid == closed auction waiting to be claimed
-     uint64_t                last_bid_time = 0;
-
-     auto     primary_key()const { return newname;                          }
-     uint64_t by_high_bid()const { return static_cast<uint64_t>(-high_bid); }
-   };
-
-   typedef eosio::multi_index< N(namebids), name_bid,
-                               indexed_by<N(highbid), const_mem_fun<name_bid, uint64_t, &name_bid::by_high_bid>  >
-                               >  name_bid_table;
-
-
    struct eosio_global_state : eosio::blockchain_parameters {
       uint64_t free_ram()const { return max_ram_size - total_ram_bytes_reserved; }
 
@@ -49,7 +34,6 @@ namespace eosiosystem {
       uint64_t             thresh_activated_stake_time = 0;
       uint16_t             last_producer_schedule_size = 0;
       double               total_producer_vote_weight = 0; /// the sum of all producer votes
-      block_timestamp      last_name_close;
       bool                 is_producer_schedule_active = false;
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
@@ -57,7 +41,7 @@ namespace eosiosystem {
                                 (max_ram_size)(total_ram_bytes_reserved)(total_ram_stake)
                                 (last_producer_schedule_update)(last_pervote_bucket_fill)
                                 (pervote_bucket)(perblock_bucket)(total_activated_stake)(thresh_activated_stake_time)
-                                (last_producer_schedule_size)(total_producer_vote_weight)(last_name_close)(is_producer_schedule_active) )
+                                (last_producer_schedule_size)(total_producer_vote_weight)(is_producer_schedule_active) )
    };
 
    struct producer_info {
@@ -172,8 +156,6 @@ namespace eosiosystem {
          void setpriv( account_name account, uint8_t ispriv );
 
          void rmvproducer( account_name producer );
-
-         void bidname( account_name bidder, account_name newname, asset bid );
 
          // worlbi admin
          void setprods( std::vector<eosio::producer_key> schedule );

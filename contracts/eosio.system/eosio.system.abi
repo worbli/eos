@@ -32,14 +32,6 @@
         {"name":"weight", "type":"weight_type"}
       ]
     },{
-      "name": "bidname",
-      "base": "",
-      "fields": [
-        {"name":"bidder",  "type":"account_name"},
-        {"name":"newname", "type":"account_name"},
-        {"name":"bid", "type":"asset"}
-      ]
-    },{
       "name": "permission_level_weight",
       "base": "",
       "fields": [
@@ -261,7 +253,6 @@
          {"name":"thresh_activated_stake_time",   "type":"uint64"},
          {"name":"last_producer_schedule_size",   "type":"uint16"},
          {"name":"total_producer_vote_weight",    "type":"float64"},
-         {"name":"last_name_close",               "type":"block_timestamp_type"},
          {"name":"is_producer_schedule_active",   "type":"bool"}
       ]
     },{
@@ -383,15 +374,6 @@
         {"name":"base", "type":"connector"},
         {"name":"quote", "type":"connector"}
       ]
-    }, {
-       "name": "namebid_info",
-       "base": "",
-       "fields": [
-          {"name":"newname", "type":"account_name"},
-          {"name":"high_bidder", "type":"account_name"},
-          {"name":"high_bid", "type":"int64"},
-          {"name":"last_bid_time", "type":"uint64"}
-       ]
     }
    ],
    "actions": [{
@@ -461,10 +443,6 @@
    },{
       "name": "setram",
       "type": "setram",
-      "ricardian_contract": ""
-   },{
-      "name": "bidname",
-      "type": "bidname",
       "ricardian_contract": ""
    },{
       "name": "unregprod",
@@ -547,12 +525,6 @@
       "index_type": "i64",
       "key_names" : ["owner"],
       "key_types" : ["uint64"]
-    },{
-       "name": "namebids",
-       "type": "namebid_info",
-       "index_type": "i64",
-       "key_names" : ["newname"],
-       "key_types" : ["account_name"]
     }
    ],
    "ricardian_clauses": [],
