@@ -180,7 +180,7 @@ EOSIO_ABI( eosiosystem::system_contract,
      // delegate_bandwidth.cpp
      (buyrambytes)(buyram)(sellram)(delegatebw)(undelegatebw)(refund)
      // voting.cpp
-     (regproducer)(unregprod)(voteproducer)(regproxy)
+     (regproducer)(unregprod)
      // producer_pay.cpp
      (onblock)(claimrewards)
      // worbli admin
