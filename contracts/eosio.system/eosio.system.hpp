@@ -27,7 +27,9 @@ namespace eosiosystem {
       int64_t              total_ram_stake = 0;
 
       block_timestamp      last_producer_schedule_update;
+      block_timestamp      last_inflation_calulation;
       uint64_t             last_pervote_bucket_fill = 0;
+      uint64_t             last_inflation_bucket_fill = 0;
       int64_t              pervote_bucket = 0;
       int64_t              perblock_bucket = 0;
       int64_t              total_activated_stake = 0;
@@ -35,13 +37,16 @@ namespace eosiosystem {
       uint16_t             last_producer_schedule_size = 0;
       double               total_producer_vote_weight = 0; /// the sum of all producer votes
       bool                 is_producer_schedule_active = false;
+      int64_t              inflation_bucket = 0;
+
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters,
                                 (max_ram_size)(total_ram_bytes_reserved)(total_ram_stake)
-                                (last_producer_schedule_update)(last_pervote_bucket_fill)
-                                (pervote_bucket)(perblock_bucket)(total_activated_stake)(thresh_activated_stake_time)
-                                (last_producer_schedule_size)(total_producer_vote_weight)(is_producer_schedule_active) )
+                                (last_producer_schedule_update)(last_inflation_calulation)(last_pervote_bucket_fill)
+                                (last_inflation_bucket_fill)(pervote_bucket)(perblock_bucket)(total_activated_stake)
+                                (thresh_activated_stake_time)(last_producer_schedule_size)(total_producer_vote_weight)
+                                (is_producer_schedule_active)(inflation_bucket) )
    };
 
    struct producer_info {
@@ -49,7 +54,7 @@ namespace eosiosystem {
       eosio::public_key     producer_key; /// a packed public key object
       bool                  is_active = true;
       std::string           url;
-      uint32_t              unpaid_blocks = 0;
+      uint32_t              produced_blocks = 0;
       uint64_t              last_claim_time = 0;
       uint16_t              location = 0;
 
@@ -59,7 +64,7 @@ namespace eosiosystem {
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE( producer_info, (owner)(producer_key)(is_active)(url)
-                        (unpaid_blocks)(last_claim_time)(location) )
+                        (produced_blocks)(last_claim_time)(location) )
    };
 
    typedef eosio::multi_index< N(producers), producer_info >  producers_table;
