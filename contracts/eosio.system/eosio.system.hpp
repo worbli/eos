@@ -28,10 +28,7 @@ namespace eosiosystem {
 
       block_timestamp      last_producer_schedule_update;
       block_timestamp      last_inflation_calulation;
-      uint64_t             last_pervote_bucket_fill = 0;
       uint64_t             last_inflation_bucket_fill = 0;
-      int64_t              pervote_bucket = 0;
-      int64_t              perblock_bucket = 0;
       int64_t              total_activated_stake = 0;
       uint64_t             thresh_activated_stake_time = 0;
       uint16_t             last_producer_schedule_size = 0;
@@ -43,8 +40,8 @@ namespace eosiosystem {
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters,
                                 (max_ram_size)(total_ram_bytes_reserved)(total_ram_stake)
-                                (last_producer_schedule_update)(last_inflation_calulation)(last_pervote_bucket_fill)
-                                (last_inflation_bucket_fill)(pervote_bucket)(perblock_bucket)(total_activated_stake)
+                                (last_producer_schedule_update)(last_inflation_calulation)
+                                (last_inflation_bucket_fill)(total_activated_stake)
                                 (thresh_activated_stake_time)(last_producer_schedule_size)(total_producer_vote_weight)
                                 (is_producer_schedule_active)(inflation_bucket) )
    };
@@ -52,7 +49,7 @@ namespace eosiosystem {
    struct producer_info {
       account_name          owner;
       eosio::public_key     producer_key; /// a packed public key object
-      bool                  is_active = true;
+      bool                  is_active = false;
       std::string           url;
       uint32_t              produced_blocks = 0;
       uint64_t              last_claim_time = 0;
@@ -165,7 +162,7 @@ namespace eosiosystem {
          // worlbi admin
          void setprods( std::vector<eosio::producer_key> schedule );
       private:
-
+         void update_producers( block_timestamp timestamp );
          // Implementation details:
 
          //defind in delegate_bandwidth.cpp

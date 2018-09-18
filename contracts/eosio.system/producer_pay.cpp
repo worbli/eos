@@ -53,7 +53,7 @@ namespace eosiosystem {
 
       /// only update block producers once every minute, block_timestamp is in half seconds
       if( timestamp.slot - _gstate.last_producer_schedule_update.slot > 120 ) {
-         //update_elected_producers( timestamp );
+         update_producers( timestamp );
       }
 
       /// only calculate inflation once 5 minutes, block_timestamp is in half seconds
@@ -72,7 +72,7 @@ namespace eosiosystem {
       }
 
       /// only distribute inflation once a day
-      if( timestamp.slot - _gstate.last_inflation_calulation.slot > useconds_per_day ) {
+      if( timestamp.slot - _gstate.last_inflation_calulation.slot > 610 ) {
          auto to_producers       = _gstate.inflation_bucket / 6;
          auto to_savings         = to_producers;
          auto to_usage           = _gstate.inflation_bucket - to_producers - to_savings;
@@ -101,9 +101,13 @@ namespace eosiosystem {
 
       const auto& prod = _producers.get( owner );
       eosio_assert( prod.active(), "producer does not have an active key" );
+      print("claimrewards ...^^^^.. printing the producer names \n");
+     
+      for( const auto& p : _producers ) {
+        print(" name=", name{p.owner}, "\n");
+      }
+      
 
-      eosio_assert( _gstate.total_activated_stake >= min_activated_stake,
-                    "cannot claim rewards until the chain is activated (at least 15% of all tokens participate in voting)" );
 
       auto ct = current_time();
 

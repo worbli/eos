@@ -96,4 +96,31 @@ namespace eosiosystem {
    }
 
 
+   void system_contract::update_producers( block_timestamp block_time ) {
+      _gstate.last_producer_schedule_update = block_time;
+
+      std::vector< std::pair<eosio::producer_key,uint16_t> > top_producers;
+
+      for( const auto& p : _producers ) {
+        if( p.is_active )
+            top_producers.emplace_back( std::pair<eosio::producer_key,uint16_t>({{p.owner, p.producer_key}, p.location}) );
+      }
+
+      /// sort by producer name
+      std::sort( top_producers.begin(), top_producers.end() );
+
+      std::vector<eosio::producer_key> producers;
+
+      producers.reserve(top_producers.size());
+      for( const auto& item : top_producers )
+         producers.push_back(item.first);
+
+      bytes packed_schedule = pack(producers);
+
+      if( set_proposed_producers( packed_schedule.data(),  packed_schedule.size() ) >= 0 ) {
+         _gstate.last_producer_schedule_size = static_cast<decltype(_gstate.last_producer_schedule_size)>( top_producers.size() );
+      }
+
+   }
+
 } /// namespace eosiosystem
