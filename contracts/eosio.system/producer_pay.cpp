@@ -4,19 +4,6 @@
 
 namespace eosiosystem {
 
-    struct producer_pay {
-      account_name          owner;   
-      asset                 earned_pay;   
-      uint64_t              last_claim_time = 0;
-
-      uint64_t primary_key()const { return owner; }
-     
-      // explicit serialization macro is not necessary, used here only to improve compilation time
-      EOSLIB_SERIALIZE( producer_pay, (owner)(earned_pay)(last_claim_time) )
-   };
-
-   typedef eosio::multi_index< N(producerpay), producer_pay >  producer_pay_table;  
-
    const int64_t  min_activated_stake   = 150'000'000'0000;
    const double   continuous_rate       = 0.058269;         // 6% annual rate
    const uint32_t blocks_per_year       = 52*7*24*2*3600;   // half seconds per year
@@ -57,7 +44,8 @@ namespace eosiosystem {
       }
 
       /// only calculate inflation once 5 minutes, block_timestamp is in half seconds
-      if( timestamp.slot - _gstate.last_inflation_calulation.slot > 600 ) {
+      //if( timestamp.slot - _gstate.last_inflation_calulation.slot > 600 ) {
+      if( timestamp.slot - _gstate.last_inflation_calulation.slot > 60 ) {
          auto ct = current_time();
          const asset token_supply   = token( N(eosio.token)).get_supply(symbol_type(system_token_symbol).name() );
          const auto usecs_since_last_fill = ct - _gstate.last_inflation_bucket_fill;
@@ -72,7 +60,7 @@ namespace eosiosystem {
       }
 
       /// only distribute inflation once a day
-      if( timestamp.slot - _gstate.last_inflation_calulation.slot > 610 ) {
+      if( timestamp.slot - _gstate.last_inflation_calulation.slot > 100 ) {
          auto to_producers       = _gstate.inflation_bucket / 6;
          auto to_savings         = to_producers;
          auto to_usage           = _gstate.inflation_bucket - to_producers - to_savings;
@@ -90,6 +78,17 @@ namespace eosiosystem {
                                                        { N(eosio), N(eosio.usage), asset(to_usage), "fund usage bucket" } );
 
         _gstate.inflation_bucket = 0;
+
+        std::vector< eosio::producer_key > active_producers;
+        for( const auto& p : _producers ) {
+            if( p.active() ) {
+                active_producers.emplace_back( eosio::producer_key{ p.owner, p.producer_key} );
+            }                
+        }    
+
+        print("------------ active_producers.size(): ", int64_t(active_producers.size()), ", _gstate.last_producer_schedule_size: ", 
+        int64_t(_gstate.last_producer_schedule_size), "\n");
+        eosio_assert( active_producers.size() == _gstate.last_producer_schedule_size, "active_producers must equal last_producer_schedule_size" );   
 
       }
 

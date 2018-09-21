@@ -64,6 +64,19 @@ namespace eosiosystem {
                         (produced_blocks)(last_claim_time)(location) )
    };
 
+   struct producer_pay {
+      account_name          owner;   
+      asset                 earned_pay;   
+      uint64_t              last_claim_time = 0;
+
+      uint64_t primary_key()const { return owner; }
+     
+      // explicit serialization macro is not necessary, used here only to improve compilation time
+      EOSLIB_SERIALIZE( producer_pay, (owner)(earned_pay)(last_claim_time) )
+   };
+
+   typedef eosio::multi_index< N(producerpay), producer_pay >  producer_pay_table;  
+
    typedef eosio::multi_index< N(producers), producer_info >  producers_table;
 
    typedef eosio::singleton<N(global), eosio_global_state> global_state_singleton;
@@ -76,6 +89,7 @@ namespace eosiosystem {
       private:
          producers_table        _producers;
          global_state_singleton _global;
+         producer_pay_table     _producer_pay;
 
          eosio_global_state     _gstate;
 

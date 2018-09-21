@@ -11,7 +11,8 @@ namespace eosiosystem {
    system_contract::system_contract( account_name s )
    :native(s),
     _producers(_self,_self),
-    _global(_self,_self)
+    _global(_self,_self),
+    _producer_pay(_self,_self)
 
    {
       //print( "construct system\n" );
