@@ -307,6 +307,9 @@ public:
    }
 
    action_result regproducer( const account_name& acnt, int params_fixture = 1 ) {
+      push_action( N(eosio), N(addproducer), mvo()
+                          ("producer",  acnt )
+      ); 
       action_result r = push_action( acnt, N(regproducer), mvo()
                           ("producer",  acnt )
                           ("producer_key", get_public_key( acnt, "active" ) )
