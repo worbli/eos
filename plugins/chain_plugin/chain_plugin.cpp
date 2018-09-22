@@ -1200,8 +1200,8 @@ read_only::get_producers_result read_only::get_producers( const read_only::get_p
          auto lower = idx.lower_bound(boost::make_tuple(table_id->id));
          auto upper = idx.lower_bound(boost::make_tuple(next_tid));
 
+         // TODO: see if we really need idx.  itr probably holds the data
          for (auto itr = lower; itr != upper; ++itr) {
-            //std::cout << name{itr->primary_key}.to_string() <<"   ***********************  JJJJJJJ ************************** \n";
             copy_inline_row(*idx.find(boost::make_tuple(table_id->id, itr->primary_key)), data);
             if (p.json)
             result.rows.emplace_back(abis.binary_to_variant(abis.get_table_type(N(producers)), data, abi_serializer_max_time));
