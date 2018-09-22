@@ -27,8 +27,8 @@ namespace eosiosystem {
       int64_t              total_ram_stake = 0;
 
       block_timestamp      last_producer_schedule_update;
-      block_timestamp      last_inflation_calulation;
-      uint64_t             last_inflation_bucket_fill = 0;
+      uint64_t             last_inflation_calulation = 0;
+      uint64_t             last_inflation_distribution = 0;
       int64_t              total_activated_stake = 0;
       uint64_t             thresh_activated_stake_time = 0;
       uint16_t             last_producer_schedule_size = 0;
@@ -41,7 +41,7 @@ namespace eosiosystem {
       EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters,
                                 (max_ram_size)(total_ram_bytes_reserved)(total_ram_stake)
                                 (last_producer_schedule_update)(last_inflation_calulation)
-                                (last_inflation_bucket_fill)(total_activated_stake)
+                                (last_inflation_distribution)(total_activated_stake)
                                 (thresh_activated_stake_time)(last_producer_schedule_size)(total_producer_vote_weight)
                                 (is_producer_schedule_active)(inflation_bucket) )
    };
@@ -66,7 +66,7 @@ namespace eosiosystem {
 
    struct producer_pay {
       account_name          owner;   
-      asset                 earned_pay;   
+      uint64_t              earned_pay;   
       uint64_t              last_claim_time = 0;
 
       uint64_t primary_key()const { return owner; }
@@ -75,7 +75,7 @@ namespace eosiosystem {
       EOSLIB_SERIALIZE( producer_pay, (owner)(earned_pay)(last_claim_time) )
    };
 
-   typedef eosio::multi_index< N(producerpay), producer_pay >  producer_pay_table;  
+   typedef eosio::multi_index< N(prodpay), producer_pay >  producer_pay_table;  
 
    typedef eosio::multi_index< N(producers), producer_info >  producers_table;
 
@@ -101,7 +101,7 @@ namespace eosiosystem {
          void onblock( block_timestamp timestamp, account_name producer );
                       // const block_header& header ); /// only parse first 3 fields of block header
 
-         // functions defined in delegate_bandwidth.cpp
+         // functions defi ned in delegate_bandwidth.cpp
 
          /**
           *  Stakes SYS from the balance of 'from' for the benfit of 'receiver'.
