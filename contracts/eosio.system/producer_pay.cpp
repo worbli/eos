@@ -91,8 +91,7 @@ namespace eosiosystem {
         uint64_t earned_pay = uint64_t(to_producers / active_producers.size());
         for( const auto& p : active_producers ) {
 
-            auto pay_itr = _producer_pay.find( p );
-        
+            auto pay_itr = _producer_pay.find( p );        
 
             if( pay_itr ==  _producer_pay.end() ) {
                 pay_itr = _producer_pay.emplace( p, [&]( auto& pay ) {

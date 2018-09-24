@@ -1228,230 +1228,25 @@ BOOST_FIXTURE_TEST_CASE(producer_onblock_check, eosio_system_tester) try {
    {
 
       activate_chain();
+      // need to produce blocks otherwise time based produce_block doesn;t work
       produce_blocks(5);
 
       // produce for 24 hours
       produce_block(fc::seconds(24 * 3600));
 
       auto info = get_producer_info(producer_names.front());
-      std::cout << ">>>>>>>>>>>>>>>>>>>>>>>: " << info["is_active"] << "\n";
-
-      std::cout << "$$$$$$$$$$$$$$$$$$$$$$: " << producer_names.front() << "\n";
 
       BOOST_REQUIRE_EQUAL(success(),
                           push_action(producer_names.front(), N(claimrewards), mvo()("owner", producer_names.front())));
-      BOOST_REQUIRE_EQUAL(0, get_balance(producer_names.front()).get_amount());
       BOOST_REQUIRE_EQUAL(success(),
                           push_action(producer_names.back(), N(claimrewards), mvo()("owner", producer_names.back())));
-      BOOST_REQUIRE_EQUAL(0, get_balance(producer_names.back()).get_amount());
+      BOOST_REQUIRE_EQUAL(get_balance(producer_names.front()).get_amount(), get_balance(producer_names.back()).get_amount());
+
    }
 
 
 } FC_LOG_AND_RETHROW()
 
-BOOST_FIXTURE_TEST_CASE( voters_actions_affect_proxy_and_producers, eosio_system_tester, * boost::unit_test::tolerance(1e+6) ) try {
-   cross_15_percent_threshold();
-
-   create_accounts_with_resources( { N(donald111111), N(defproducer1), N(defproducer2), N(defproducer3) } );
-   BOOST_REQUIRE_EQUAL( success(), regproducer( "defproducer1", 1) );
-   BOOST_REQUIRE_EQUAL( success(), regproducer( "defproducer2", 2) );
-   BOOST_REQUIRE_EQUAL( success(), regproducer( "defproducer3", 3) );
-
-   //alice1111111 becomes a producer
-   BOOST_REQUIRE_EQUAL( success(), push_action( N(alice1111111), N(regproxy), mvo()
-                                                ("proxy",  "alice1111111")
-                                                ("isproxy", true)
-                        )
-   );
-   REQUIRE_MATCHING_OBJECT( proxy( "alice1111111" ), get_voter_info( "alice1111111" ) );
-
-   //alice1111111 makes stake and votes
-   issue( "alice1111111", core_from_string("1000.0000"),  config::system_account_name );
-   BOOST_REQUIRE_EQUAL( success(), stake( "alice1111111", core_from_string("30.0001"), core_from_string("20.0001") ) );
-   BOOST_REQUIRE_EQUAL( success(), vote( N(alice1111111), { N(defproducer1), N(defproducer2) } ) );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("50.0002")) == get_producer_info( "defproducer1" )["total_votes"].as_double() );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("50.0002")) == get_producer_info( "defproducer2" )["total_votes"].as_double() );
-   BOOST_REQUIRE_EQUAL( 0, get_producer_info( "defproducer3" )["total_votes"].as_double() );
-
-   BOOST_REQUIRE_EQUAL( success(), push_action( N(donald111111), N(regproxy), mvo()
-                                                ("proxy",  "donald111111")
-                                                ("isproxy", true)
-                        )
-   );
-   REQUIRE_MATCHING_OBJECT( proxy( "donald111111" ), get_voter_info( "donald111111" ) );
-
-   //bob111111111 chooses alice1111111 as a proxy
-   issue( "bob111111111", core_from_string("1000.0000"),  config::system_account_name );
-   BOOST_REQUIRE_EQUAL( success(), stake( "bob111111111", core_from_string("100.0002"), core_from_string("50.0001") ) );
-   BOOST_REQUIRE_EQUAL( success(), vote( N(bob111111111), vector<account_name>(), "alice1111111" ) );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("150.0003")) == get_voter_info( "alice1111111" )["proxied_vote_weight"].as_double() );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("200.0005")) == get_producer_info( "defproducer1" )["total_votes"].as_double() );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("200.0005")) == get_producer_info( "defproducer2" )["total_votes"].as_double() );
-   BOOST_REQUIRE_EQUAL( 0, get_producer_info( "defproducer3" )["total_votes"].as_double() );
-
-   //carol1111111 chooses alice1111111 as a proxy
-   issue( "carol1111111", core_from_string("1000.0000"),  config::system_account_name );
-   BOOST_REQUIRE_EQUAL( success(), stake( "carol1111111", core_from_string("30.0001"), core_from_string("20.0001") ) );
-   BOOST_REQUIRE_EQUAL( success(), vote( N(carol1111111), vector<account_name>(), "alice1111111" ) );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("200.0005")) == get_voter_info( "alice1111111" )["proxied_vote_weight"].as_double() );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("250.0007")) == get_producer_info( "defproducer1" )["total_votes"].as_double() );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("250.0007")) == get_producer_info( "defproducer2" )["total_votes"].as_double() );
-   BOOST_REQUIRE_EQUAL( 0, get_producer_info( "defproducer3" )["total_votes"].as_double() );
-
-   //proxied voter carol1111111 increases stake
-   BOOST_REQUIRE_EQUAL( success(), stake( "carol1111111", core_from_string("50.0000"), core_from_string("70.0000") ) );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("320.0005")) == get_voter_info( "alice1111111" )["proxied_vote_weight"].as_double() );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("370.0007")) == get_producer_info( "defproducer1" )["total_votes"].as_double() );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("370.0007")) == get_producer_info( "defproducer2" )["total_votes"].as_double() );
-   BOOST_REQUIRE_EQUAL( 0, get_producer_info( "defproducer3" )["total_votes"].as_double() );
-
-   //proxied voter bob111111111 decreases stake
-   BOOST_REQUIRE_EQUAL( success(), unstake( "bob111111111", core_from_string("50.0001"), core_from_string("50.0001") ) );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("220.0003")) == get_voter_info( "alice1111111" )["proxied_vote_weight"].as_double() );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("270.0005")) == get_producer_info( "defproducer1" )["total_votes"].as_double() );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("270.0005")) == get_producer_info( "defproducer2" )["total_votes"].as_double() );
-   BOOST_REQUIRE_EQUAL( 0, get_producer_info( "defproducer3" )["total_votes"].as_double() );
-
-   //proxied voter carol1111111 chooses another proxy
-   BOOST_REQUIRE_EQUAL( success(), vote( N(carol1111111), vector<account_name>(), "donald111111" ) );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("50.0001")), get_voter_info( "alice1111111" )["proxied_vote_weight"].as_double() );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("170.0002")), get_voter_info( "donald111111" )["proxied_vote_weight"].as_double() );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("100.0003")), get_producer_info( "defproducer1" )["total_votes"].as_double() );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("100.0003")), get_producer_info( "defproducer2" )["total_votes"].as_double() );
-   BOOST_REQUIRE_EQUAL( 0, get_producer_info( "defproducer3" )["total_votes"].as_double() );
-
-   //bob111111111 switches to direct voting and votes for one of the same producers, but not for another one
-   BOOST_REQUIRE_EQUAL( success(), vote( N(bob111111111), { N(defproducer2) } ) );
-   BOOST_TEST_REQUIRE( 0.0 == get_voter_info( "alice1111111" )["proxied_vote_weight"].as_double() );
-   BOOST_TEST_REQUIRE(  stake2votes(core_from_string("50.0002")), get_producer_info( "defproducer1" )["total_votes"].as_double() );
-   BOOST_TEST_REQUIRE( stake2votes(core_from_string("100.0003")), get_producer_info( "defproducer2" )["total_votes"].as_double() );
-   BOOST_TEST_REQUIRE( 0.0 == get_producer_info( "defproducer3" )["total_votes"].as_double() );
-
-} FC_LOG_AND_RETHROW()
-
-
-BOOST_FIXTURE_TEST_CASE( vote_both_proxy_and_producers, eosio_system_tester ) try {
-   //alice1111111 becomes a proxy
-   BOOST_REQUIRE_EQUAL( success(), push_action( N(alice1111111), N(regproxy), mvo()
-                                                ("proxy",  "alice1111111")
-                                                ("isproxy", true)
-                        )
-   );
-   REQUIRE_MATCHING_OBJECT( proxy( "alice1111111" ), get_voter_info( "alice1111111" ) );
-
-   //carol1111111 becomes a producer
-   BOOST_REQUIRE_EQUAL( success(), regproducer( "carol1111111", 1) );
-
-   //bob111111111 chooses alice1111111 as a proxy
-
-   issue( "bob111111111", core_from_string("1000.0000"),  config::system_account_name );
-   BOOST_REQUIRE_EQUAL( success(), stake( "bob111111111", core_from_string("100.0002"), core_from_string("50.0001") ) );
-   BOOST_REQUIRE_EQUAL( wasm_assert_msg("cannot vote for producers and proxy at same time"),
-                        vote( N(bob111111111), { N(carol1111111) }, "alice1111111" ) );
-
-} FC_LOG_AND_RETHROW()
-
-
-BOOST_FIXTURE_TEST_CASE( select_invalid_proxy, eosio_system_tester ) try {
-   //accumulate proxied votes
-   issue( "bob111111111", core_from_string("1000.0000"),  config::system_account_name );
-   BOOST_REQUIRE_EQUAL( success(), stake( "bob111111111", core_from_string("100.0002"), core_from_string("50.0001") ) );
-
-   //selecting account not registered as a proxy
-   BOOST_REQUIRE_EQUAL( wasm_assert_msg( "invalid proxy specified" ),
-                        vote( N(bob111111111), vector<account_name>(), "alice1111111" ) );
-
-   //selecting not existing account as a proxy
-   BOOST_REQUIRE_EQUAL( wasm_assert_msg( "invalid proxy specified" ),
-                        vote( N(bob111111111), vector<account_name>(), "notexist" ) );
-
-} FC_LOG_AND_RETHROW()
-
-
-BOOST_FIXTURE_TEST_CASE( double_register_unregister_proxy_keeps_votes, eosio_system_tester ) try {
-   //alice1111111 becomes a proxy
-   BOOST_REQUIRE_EQUAL( success(), push_action( N(alice1111111), N(regproxy), mvo()
-                                                ("proxy",  "alice1111111")
-                                                ("isproxy",  1)
-                        )
-   );
-   issue( "alice1111111", core_from_string("1000.0000"),  config::system_account_name );
-   BOOST_REQUIRE_EQUAL( success(), stake( "alice1111111", core_from_string("5.0000"), core_from_string("5.0000") ) );
-   edump((get_voter_info("alice1111111")));
-   REQUIRE_MATCHING_OBJECT( proxy( "alice1111111" )( "staked", 100000 ), get_voter_info( "alice1111111" ) );
-
-   //bob111111111 stakes and selects alice1111111 as a proxy
-   issue( "bob111111111", core_from_string("1000.0000"),  config::system_account_name );
-   BOOST_REQUIRE_EQUAL( success(), stake( "bob111111111", core_from_string("100.0002"), core_from_string("50.0001") ) );
-   BOOST_REQUIRE_EQUAL( success(), vote( N(bob111111111), vector<account_name>(), "alice1111111" ) );
-   REQUIRE_MATCHING_OBJECT( proxy( "alice1111111" )( "proxied_vote_weight", stake2votes( core_from_string("150.0003") ))( "staked", 100000 ), get_voter_info( "alice1111111" ) );
-
-   //double regestering should fail without affecting total votes and stake
-   BOOST_REQUIRE_EQUAL( wasm_assert_msg( "action has no effect" ),
-                        push_action( N(alice1111111), N(regproxy), mvo()
-                                     ("proxy",  "alice1111111")
-                                     ("isproxy",  1)
-                        )
-   );
-   REQUIRE_MATCHING_OBJECT( proxy( "alice1111111" )( "proxied_vote_weight", stake2votes(core_from_string("150.0003")) )( "staked", 100000 ), get_voter_info( "alice1111111" ) );
-
-   //uregister
-   BOOST_REQUIRE_EQUAL( success(), push_action( N(alice1111111), N(regproxy), mvo()
-                                                ("proxy",  "alice1111111")
-                                                ("isproxy",  0)
-                        )
-   );
-   REQUIRE_MATCHING_OBJECT( voter( "alice1111111" )( "proxied_vote_weight", stake2votes(core_from_string("150.0003")) )( "staked", 100000 ), get_voter_info( "alice1111111" ) );
-
-   //double unregistering should not affect proxied_votes and stake
-   BOOST_REQUIRE_EQUAL( wasm_assert_msg( "action has no effect" ),
-                        push_action( N(alice1111111), N(regproxy), mvo()
-                                     ("proxy",  "alice1111111")
-                                     ("isproxy",  0)
-                        )
-   );
-   REQUIRE_MATCHING_OBJECT( voter( "alice1111111" )( "proxied_vote_weight", stake2votes(core_from_string("150.0003")))( "staked", 100000 ), get_voter_info( "alice1111111" ) );
-
-} FC_LOG_AND_RETHROW()
-
-
-BOOST_FIXTURE_TEST_CASE( proxy_cannot_use_another_proxy, eosio_system_tester ) try {
-   //alice1111111 becomes a proxy
-   BOOST_REQUIRE_EQUAL( success(), push_action( N(alice1111111), N(regproxy), mvo()
-                                                ("proxy",  "alice1111111")
-                                                ("isproxy",  1)
-                        )
-   );
-
-   //bob111111111 becomes a proxy
-   BOOST_REQUIRE_EQUAL( success(), push_action( N(bob111111111), N(regproxy), mvo()
-                                                ("proxy",  "bob111111111")
-                                                ("isproxy",  1)
-                        )
-   );
-
-   //proxy should not be able to use a proxy
-   issue( "bob111111111", core_from_string("1000.0000"),  config::system_account_name );
-   BOOST_REQUIRE_EQUAL( success(), stake( "bob111111111", core_from_string("100.0002"), core_from_string("50.0001") ) );
-   BOOST_REQUIRE_EQUAL( wasm_assert_msg( "account registered as a proxy is not allowed to use a proxy" ),
-                        vote( N(bob111111111), vector<account_name>(), "alice1111111" ) );
-
-   //voter that uses a proxy should not be allowed to become a proxy
-   issue( "carol1111111", core_from_string("1000.0000"),  config::system_account_name );
-   BOOST_REQUIRE_EQUAL( success(), stake( "carol1111111", core_from_string("100.0002"), core_from_string("50.0001") ) );
-   BOOST_REQUIRE_EQUAL( success(), vote( N(carol1111111), vector<account_name>(), "alice1111111" ) );
-   BOOST_REQUIRE_EQUAL( wasm_assert_msg( "account that uses a proxy is not allowed to become a proxy" ),
-                        push_action( N(carol1111111), N(regproxy), mvo()
-                                     ("proxy",  "carol1111111")
-                                     ("isproxy",  1)
-                        )
-   );
-
-   //proxy should not be able to use itself as a proxy
-   BOOST_REQUIRE_EQUAL( wasm_assert_msg( "cannot proxy to self" ),
-                        vote( N(bob111111111), vector<account_name>(), "bob111111111" ) );
-
-} FC_LOG_AND_RETHROW()
 
 fc::mutable_variant_object config_to_variant( const eosio::chain::chain_config& config ) {
    return mutable_variant_object()
