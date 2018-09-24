@@ -1334,7 +1334,7 @@ BOOST_FIXTURE_TEST_CASE( elect_producers /*_and_parameters*/, eosio_system_teste
 
 } FC_LOG_AND_RETHROW()
 
-
+/**
 BOOST_FIXTURE_TEST_CASE( buyname, eosio_system_tester ) try {
    create_accounts_with_resources( { N(dan), N(sam) } );
    transfer( config::system_account_name, "dan", core_from_string( "10000.0000" ) );
@@ -1343,10 +1343,8 @@ BOOST_FIXTURE_TEST_CASE( buyname, eosio_system_tester ) try {
    stake_with_transfer( config::system_account_name, "dan", core_from_string( "80000000.0000" ), core_from_string( "80000000.0000" ) );
 
    regproducer( config::system_account_name );
-   BOOST_REQUIRE_EQUAL( success(), vote( N(sam), { config::system_account_name } ) );
    // wait 14 days after min required amount has been staked
    produce_block( fc::days(7) );
-   BOOST_REQUIRE_EQUAL( success(), vote( N(dan), { config::system_account_name } ) );
    produce_block( fc::days(7) );
    produce_block();
 
@@ -1371,7 +1369,9 @@ BOOST_FIXTURE_TEST_CASE( buyname, eosio_system_tester ) try {
 
    create_accounts_with_resources( { N(goodgoodgood) }, N(dan) ); /// 12 char names should succeed
 } FC_LOG_AND_RETHROW()
+**/
 
+/**
 BOOST_FIXTURE_TEST_CASE( bid_invalid_names, eosio_system_tester ) try {
    create_accounts_with_resources( { N(dan) } );
 
@@ -1388,7 +1388,9 @@ BOOST_FIXTURE_TEST_CASE( bid_invalid_names, eosio_system_tester ) try {
                         bidname( "dan", "abcdefg12345", core_from_string( "1.0000" ) ) );
 
 } FC_LOG_AND_RETHROW()
+**/
 
+/**
 BOOST_FIXTURE_TEST_CASE( multiple_namebids, eosio_system_tester ) try {
 
    const std::string not_closed_message("auction for name is not closed yet");
@@ -1526,7 +1528,7 @@ BOOST_FIXTURE_TEST_CASE( multiple_namebids, eosio_system_tester ) try {
                             fc::exception, fc_assert_exception_message_is( not_closed_message ) );
 
 } FC_LOG_AND_RETHROW()
-
+**/
 BOOST_FIXTURE_TEST_CASE( vote_producers_in_and_out, eosio_system_tester ) try {
 
    const asset net = core_from_string("80.0000");
