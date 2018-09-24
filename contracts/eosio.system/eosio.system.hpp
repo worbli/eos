@@ -27,20 +27,19 @@ namespace eosiosystem {
       int64_t              total_ram_stake = 0;
 
       block_timestamp      last_producer_schedule_update;
-      uint64_t             last_inflation_calulation = 0;
+      uint64_t             last_inflation_calculation = 0;
       uint64_t             last_inflation_distribution = 0;
       int64_t              total_activated_stake = 0;
       uint64_t             thresh_activated_stake_time = 0;
       uint16_t             last_producer_schedule_size = 0;
       double               total_producer_vote_weight = 0; /// the sum of all producer votes
       bool                 is_producer_schedule_active = false;
-      int64_t              inflation_bucket = 0;
-
+      uint64_t             inflation_bucket = 0;
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters,
                                 (max_ram_size)(total_ram_bytes_reserved)(total_ram_stake)
-                                (last_producer_schedule_update)(last_inflation_calulation)
+                                (last_producer_schedule_update)(last_inflation_calculation)
                                 (last_inflation_distribution)(total_activated_stake)
                                 (thresh_activated_stake_time)(last_producer_schedule_size)(total_producer_vote_weight)
                                 (is_producer_schedule_active)(inflation_bucket) )
@@ -51,7 +50,7 @@ namespace eosiosystem {
       eosio::public_key     producer_key; /// a packed public key object
       bool                  is_active = false;
       std::string           url;
-      uint32_t              produced_blocks = 0;
+      uint64_t              produced_blocks = 0;
       uint64_t              last_claim_time = 0;
       uint16_t              location = 0;
 

@@ -46,8 +46,8 @@ public:
 
       produce_blocks( 2 );
 
-      create_accounts({ N(eosio.token), N(eosio.ram), N(eosio.ramfee), N(eosio.stake),
-               N(eosio.bpay), N(eosio.vpay), N(eosio.saving), N(eosio.names) });
+      create_accounts({ N(eosio.token), N(eosio.ppay), N(eosio.usage), N(eosio.stake),
+               N(eosio.saving), N(eosio.names) });
 
 
       produce_blocks( 100 );
@@ -484,6 +484,12 @@ public:
       BOOST_REQUIRE_EQUAL( name("defproducera"), producer_keys[0].producer_name );
 
       return producer_names;
+   }
+
+   void activate_chain() {
+      push_action( N(eosio), N(togglesched), mvo()
+                          ("is_active",  1 )
+      ); 
    }
 
    void cross_15_percent_threshold() {

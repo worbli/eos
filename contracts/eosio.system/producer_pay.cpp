@@ -5,7 +5,7 @@
 namespace eosiosystem {
 
    const int64_t  min_activated_stake   = 150'000'000'0000;
-   const double   continuous_rate       = 0.058269;         // 6% annual rate
+   const double   continuous_rate       = 0.05827;         // 6% annual rate
    const uint32_t blocks_per_year       = 52*7*24*2*3600;   // half seconds per year
    const uint32_t seconds_per_year      = 52*7*24*3600;
    const uint32_t blocks_per_day        = 2 * 24 * 3600;
@@ -25,8 +25,8 @@ namespace eosiosystem {
       if( !_gstate.is_producer_schedule_active )
          return;
 
-      if( _gstate.last_inflation_calulation == 0 ) /// start the presses
-         _gstate.last_inflation_calulation = ct;
+      if( _gstate.last_inflation_calculation == 0 ) /// start the presses
+         _gstate.last_inflation_calculation = ct;
 
       if( _gstate.last_inflation_distribution == 0 ) /// start the presses
          _gstate.last_inflation_distribution = ct;    
@@ -35,6 +35,7 @@ namespace eosiosystem {
        * At startup the initial producer may not be one that is registered / elected
        * and therefore there may be no producer object for them.
        */
+
       auto prod = _producers.find(producer);
       if ( prod != _producers.end() ) {
          _producers.modify( prod, 0, [&](auto& p ) {
@@ -48,20 +49,21 @@ namespace eosiosystem {
       }
 
       /// calculate inflation once 5 minutes
-      if( ct - _gstate.last_inflation_calulation > useconds_per_min * 5 ) {
+      if( ct - _gstate.last_inflation_calculation > useconds_per_min * 5) {
          const asset token_supply   = token( N(eosio.token)).get_supply(symbol_type(system_token_symbol).name() ); 
-         const auto usecs_since_last_fill = ct - _gstate.last_inflation_calulation;
+         const auto usecs_since_last_fill = ct - _gstate.last_inflation_calculation;
          auto new_tokens = static_cast<int64_t>( (continuous_rate * double(token_supply.amount + _gstate.inflation_bucket) * double(usecs_since_last_fill)) / double(useconds_per_year) );
-         
+
          _gstate.inflation_bucket += new_tokens;
-         _gstate.last_inflation_calulation = ct;
+         _gstate.last_inflation_calculation = ct;
+         return;
       }
 
       /// only distribute inflation once a day
-      if( ct - _gstate.last_inflation_distribution > useconds_per_min * 6 ) {
+      if( ct - _gstate.last_inflation_distribution > useconds_per_day && _gstate.inflation_bucket > 0 ) {
          auto to_producers       = _gstate.inflation_bucket / 6;
          auto to_savings         = to_producers;
-         auto to_usage           = _gstate.inflation_bucket - to_producers - to_savings;
+         auto to_usage           = _gstate.inflation_bucket - (to_producers + to_savings);
 
          INLINE_ACTION_SENDER(eosio::token, issue)( N(eosio.token), {{N(eosio),N(active)}},
                                                     {N(eosio), asset(_gstate.inflation_bucket), std::string("issue tokens for producer pay and savings and usage")} );
@@ -84,23 +86,21 @@ namespace eosiosystem {
             }                
         }    
 
-        print("------------ active_producers.size(): ", int64_t(active_producers.size()), ", _gstate.last_producer_schedule_size: ", 
-        int64_t(_gstate.last_producer_schedule_size), "\n");
         eosio_assert( active_producers.size() == _gstate.last_producer_schedule_size, "active_producers must equal last_producer_schedule_size" );   
 
         uint64_t earned_pay = uint64_t(to_producers / active_producers.size());
-        producer_pay_table  ppay( _self, _self );
         for( const auto& p : active_producers ) {
 
-            auto pay_itr = ppay.find( p );
+            auto pay_itr = _producer_pay.find( p );
+        
 
-            if( pay_itr ==  ppay.end() ) {
-                pay_itr = ppay.emplace( p, [&]( auto& pay ) {
+            if( pay_itr ==  _producer_pay.end() ) {
+                pay_itr = _producer_pay.emplace( p, [&]( auto& pay ) {
                     pay.owner = p;
                     pay.earned_pay = earned_pay;
                 });
             } else {
-                ppay.modify( pay_itr, p, [&]( auto& pay ) {
+                _producer_pay.modify( pay_itr, 0, [&]( auto& pay ) {
                     pay.earned_pay += earned_pay;
                 });
             }              
@@ -117,33 +117,28 @@ namespace eosiosystem {
       require_auth(owner);
 
       const auto& prod = _producers.get( owner );
-      eosio_assert( prod.active(), "producer is not active" );
-
-      producer_pay_table  ppay( _self, _self );
-      auto pay_itr = ppay.find( owner );
-      eosio_assert( pay_itr != ppay.end(), "producer pay request not found" );
-      //eosio_assert( ct - prod.last_claim_time > useconds_per_day, "already claimed rewards within past day" );
-/**
-      ppay.modify( pay_itr, p, [&]( auto& pay ) {
-        pay.earned_pay += earned_pay;
-      });
-**/                
+      eosio_assert( prod.active(), "producer does not have an active key" );
+                    
       auto ct = current_time();
+
+      //producer_pay_table  pay_tbl( _self, _self );
+      auto pay = _producer_pay.find( owner );
+      eosio_assert( pay != _producer_pay.end(), "producer pay request not found" );
+      eosio_assert( ct - prod.last_claim_time > useconds_per_day, "already claimed rewards within past day" );
+
+      uint64_t earned_pay = pay->earned_pay;
+
+     _producer_pay.erase( pay );
 
       _producers.modify( prod, 0, [&](auto& p) {
           p.last_claim_time = ct;
       });
 
-/**
-      if( producer_per_block_pay > 0 ) {
-         INLINE_ACTION_SENDER(eosio::token, transfer)( N(eosio.token), {N(eosio.bpay),N(active)},
-                                                       { N(eosio.bpay), owner, asset(producer_per_block_pay), std::string("producer block pay") } );
+      if( earned_pay > 0 ) {
+         INLINE_ACTION_SENDER(eosio::token, transfer)( N(eosio.token), {N(eosio.ppay),N(active)},
+                                                       { N(eosio.ppay), owner, asset(earned_pay), std::string("producer block pay") } );
       }
-      if( producer_per_vote_pay > 0 ) {
-         INLINE_ACTION_SENDER(eosio::token, transfer)( N(eosio.token), {N(eosio.vpay),N(active)},
-                                                       { N(eosio.vpay), owner, asset(producer_per_vote_pay), std::string("producer vote pay") } );
-      }
-    **/
+
    }
 
 } //namespace eosiosystem
