@@ -1098,10 +1098,10 @@ BOOST_FIXTURE_TEST_CASE(producers_upgrade_system_contract, eosio_system_tester) 
    }
    //prepare system contract with different hash (contract differs in one byte)
    string eosio_system_wast2 = eosio_system_wast;
-   string msg = "producer votes must be unique and sorted";
+   string msg = "account is not registered as a producer";
    auto pos = eosio_system_wast2.find(msg);
    BOOST_REQUIRE( pos != std::string::npos );
-   msg[0] = 'P';
+   msg[0] = 'A';
    eosio_system_wast2.replace( pos, msg.size(), msg );
 
    transaction trx;

@@ -451,6 +451,7 @@ public:
             BOOST_REQUIRE_EQUAL( success(), regproducer(p) );
          }
       }
+      activate_chain();
       produce_blocks( 250);
 
       auto trace_auth = TESTER::push_action(config::system_account_name, updateauth::get_name(), config::system_account_name, mvo()
@@ -470,12 +471,6 @@ public:
          transfer( config::system_account_name, "alice1111111", core_from_string("100000000.0000"), config::system_account_name );
          BOOST_REQUIRE_EQUAL(success(), stake( "alice1111111", core_from_string("30000000.0000"), core_from_string("30000000.0000") ) );
          BOOST_REQUIRE_EQUAL(success(), buyram( "alice1111111", "alice1111111", core_from_string("30000000.0000") ) );
-         BOOST_REQUIRE_EQUAL(success(), push_action(N(alice1111111), N(voteproducer), mvo()
-                                                    ("voter",  "alice1111111")
-                                                    ("proxy", name(0).to_string())
-                                                    ("producers", vector<account_name>(producer_names.begin(), producer_names.begin()+21))
-                             )
-         );
       }
       produce_blocks( 250 );
 
