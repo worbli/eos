@@ -130,6 +130,10 @@ public:
     }
 
     auto register_producer(name producer) {
+        base_tester::push_action( N(eosio), N(addproducer), N(eosio), mvo()
+                          ("producer",  producer )
+        ); 
+
        auto r = base_tester::push_action(N(eosio), N(regproducer), producer, mvo()
                        ("producer",  name(producer))
                        ("producer_key", get_public_key( producer, "active" ) )
@@ -243,24 +247,6 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
            register_producer(pro);
         }
 
-        // Vote for producers
-        auto votepro = [&]( account_name voter, vector<account_name> producers ) {
-          std::sort( producers.begin(), producers.end() );
-          base_tester::push_action(N(eosio), N(voteproducer), voter, mvo()
-                                ("voter",  name(voter))
-                                ("proxy", name(0) )
-                                ("producers", producers)
-                     );
-        };
-        votepro( N(b1), { N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
-                           N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
-                           N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)} );
-        votepro( N(whale2), {N(runnerup1), N(runnerup2), N(runnerup3)} );
-        votepro( N(whale3), {N(proda), N(prodb), N(prodc), N(prodd), N(prode)} );
-
-        // Total Stakes = b1 + whale2 + whale3 stake = (100,000,000 - 1,000) + (20,000,000 - 1,000) + (30,000,000 - 1,000)
-        BOOST_TEST(get_global_state()["total_activated_stake"].as<int64_t>() == 1499997000000);
-
         // No producers will be set, since the total activated stake is less than 150,000,000
         produce_blocks_for_n_rounds(2); // 2 rounds since new producer schedule is set when the first block of next round is irreversible
         auto active_schedule = control->head_block_state()->active_schedule;
@@ -272,13 +258,10 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         // Since the total activated stake is less than 150,000,000, it shouldn't be possible to claim rewards
         BOOST_REQUIRE_THROW(claim_rewards(N(runnerup1)), eosio_assert_message_exception);
 
-        // This will increase the total vote stake by (40,000,000 - 1,000)
-        votepro( N(whale4), {N(prodq), N(prodr), N(prods), N(prodt), N(produ)} );
-        BOOST_TEST(get_global_state()["total_activated_stake"].as<int64_t>() == 1899996000000);
-
         // Since the total vote stake is more than 150,000,000, the new producer set will be set
         produce_blocks_for_n_rounds(2); // 2 rounds since new producer schedule is set when the first block of next round is irreversible
         active_schedule = control->head_block_state()->active_schedule;
+        cout << "producer schedule size: " << active_schedule.producers.size() << "\n";
         BOOST_REQUIRE(active_schedule.producers.size() == 21);
         BOOST_TEST(active_schedule.producers.at(0).producer_name == "proda");
         BOOST_TEST(active_schedule.producers.at(1).producer_name == "prodb");
@@ -325,8 +308,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
         return;
         produce_blocks(7000); /// produce blocks until virutal bandwidth can acomadate a small user
-        wlog("minow" );
-        votepro( N(minow1), {N(p1), N(p2)} );
+
 
 
 // TODO: Complete this test

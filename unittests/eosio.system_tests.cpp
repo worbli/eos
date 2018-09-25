@@ -893,6 +893,14 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
       BOOST_REQUIRE(500 * 10000 > int64_t(double(initial_supply.get_amount()) * double(0.01)) - (savings - initial_savings));
       BOOST_REQUIRE(500 * 10000 > int64_t(double(initial_supply.get_amount()) * double(0.04)) - (usage - initial_usage));
       // Todo: producerpay equal 1/3 of savings
+
+   }
+
+   {
+      produce_block(fc::days(712)); 
+      const asset   supply  = get_token_supply();
+      std::cout << "###############supply " << supply.get_amount() << "\n";
+
    }
 
 } FC_LOG_AND_RETHROW()
@@ -1278,59 +1286,15 @@ BOOST_FIXTURE_TEST_CASE( elect_producers /*_and_parameters*/, eosio_system_teste
    transfer( "eosio", "alice1111111", core_from_string("600000000.0000"), "eosio" );
    BOOST_REQUIRE_EQUAL( success(), stake( "alice1111111", "alice1111111", core_from_string("300000000.0000"), core_from_string("300000000.0000") ) );
    //vote for producers
-   BOOST_REQUIRE_EQUAL( success(), vote( N(alice1111111), { N(defproducer1) } ) );
+   activate_chain();
    produce_blocks(250);
    auto producer_keys = control->head_block_state()->active_schedule.producers;
-   BOOST_REQUIRE_EQUAL( 1, producer_keys.size() );
-   BOOST_REQUIRE_EQUAL( name("defproducer1"), producer_keys[0].producer_name );
-
-   //auto config = config_to_variant( control->get_global_properties().configuration );
-   //auto prod1_config = testing::filter_fields( config, producer_parameters_example( 1 ) );
-   //REQUIRE_EQUAL_OBJECTS(prod1_config, config);
-
-   // elect 2 producers
-   issue( "bob111111111", core_from_string("80000.0000"),  config::system_account_name );
-   ilog("stake");
-   BOOST_REQUIRE_EQUAL( success(), stake( "bob111111111", core_from_string("40000.0000"), core_from_string("40000.0000") ) );
-   ilog("start vote");
-   BOOST_REQUIRE_EQUAL( success(), vote( N(bob111111111), { N(defproducer2) } ) );
-   ilog(".");
-   produce_blocks(250);
-   producer_keys = control->head_block_state()->active_schedule.producers;
-   BOOST_REQUIRE_EQUAL( 2, producer_keys.size() );
-   BOOST_REQUIRE_EQUAL( name("defproducer1"), producer_keys[0].producer_name );
-   BOOST_REQUIRE_EQUAL( name("defproducer2"), producer_keys[1].producer_name );
-   //config = config_to_variant( control->get_global_properties().configuration );
-   //auto prod2_config = testing::filter_fields( config, producer_parameters_example( 2 ) );
-   //REQUIRE_EQUAL_OBJECTS(prod2_config, config);
-
-   // elect 3 producers
-   BOOST_REQUIRE_EQUAL( success(), vote( N(bob111111111), { N(defproducer2), N(defproducer3) } ) );
-   produce_blocks(250);
-   producer_keys = control->head_block_state()->active_schedule.producers;
    BOOST_REQUIRE_EQUAL( 3, producer_keys.size() );
    BOOST_REQUIRE_EQUAL( name("defproducer1"), producer_keys[0].producer_name );
    BOOST_REQUIRE_EQUAL( name("defproducer2"), producer_keys[1].producer_name );
    BOOST_REQUIRE_EQUAL( name("defproducer3"), producer_keys[2].producer_name );
-   //config = config_to_variant( control->get_global_properties().configuration );
-   //REQUIRE_EQUAL_OBJECTS(prod2_config, config);
 
-   // try to go back to 2 producers and fail
-   BOOST_REQUIRE_EQUAL( success(), vote( N(bob111111111), { N(defproducer3) } ) );
-   produce_blocks(250);
-   producer_keys = control->head_block_state()->active_schedule.producers;
-   BOOST_REQUIRE_EQUAL( 3, producer_keys.size() );
-
-   // The test below is invalid now, producer schedule is not updated if there are
-   // fewer producers in the new schedule
-   /*
-   BOOST_REQUIRE_EQUAL( 2, producer_keys.size() );
-   BOOST_REQUIRE_EQUAL( name("defproducer1"), producer_keys[0].producer_name );
-   BOOST_REQUIRE_EQUAL( name("defproducer3"), producer_keys[1].producer_name );
-   //config = config_to_variant( control->get_global_properties().configuration );
-   //auto prod3_config = testing::filter_fields( config, producer_parameters_example( 3 ) );
-   //REQUIRE_EQUAL_OBJECTS(prod3_config, config);
-   */
+   // TODO test some more schedule changes
 
 } FC_LOG_AND_RETHROW()
 
@@ -1524,19 +1488,15 @@ BOOST_FIXTURE_TEST_CASE( multiple_namebids, eosio_system_tester ) try {
    create_account_with_resources( N(xyz.prefe), N(prefe) );
 
    // other auctions haven't closed
-   BOOST_REQUIRE_EXCEPTION( create_account_with_resources( N(prefa), N(bob) ),
+   BOOST_REQUIRE_EXCEPTION( ( N(prefa), N(bob) ),
                             fc::exception, fc_assert_exception_message_is( not_closed_message ) );
 
 } FC_LOG_AND_RETHROW()
 **/
-BOOST_FIXTURE_TEST_CASE( vote_producers_in_and_out, eosio_system_tester ) try {
+BOOST_FIXTURE_TEST_CASE( move_producers_in_and_out, eosio_system_tester ) try {
 
    const asset net = core_from_string("80.0000");
    const asset cpu = core_from_string("80.0000");
-   std::vector<account_name> voters = { N(producvotera), N(producvoterb), N(producvoterc), N(producvoterd) };
-   for (const auto& v: voters) {
-      create_account_with_resources(v, config::system_account_name, core_from_string("1000.0000"), false, net, cpu);
-   }
 
    // create accounts {defproducera, defproducerb, ..., defproducerz} and register as producers
    std::vector<account_name> producer_names;
@@ -1552,19 +1512,7 @@ BOOST_FIXTURE_TEST_CASE( vote_producers_in_and_out, eosio_system_tester ) try {
          produce_blocks(1);
          ilog( "------ get pro----------" );
          wdump((p));
-         BOOST_TEST(0 == get_producer_info(p)["total_votes"].as<double>());
       }
-   }
-
-   for (const auto& v: voters) {
-      transfer( config::system_account_name, v, core_from_string("200000000.0000"), config::system_account_name );
-      BOOST_REQUIRE_EQUAL(success(), stake(v, core_from_string("30000000.0000"), core_from_string("30000000.0000")) );
-   }
-
-   {
-      BOOST_REQUIRE_EQUAL(success(), vote(N(producvotera), vector<account_name>(producer_names.begin(), producer_names.begin()+20)));
-      BOOST_REQUIRE_EQUAL(success(), vote(N(producvoterb), vector<account_name>(producer_names.begin(), producer_names.begin()+21)));
-      BOOST_REQUIRE_EQUAL(success(), vote(N(producvoterc), vector<account_name>(producer_names.begin(), producer_names.end())));
    }
 
    // give a chance for everyone to produce blocks
@@ -1572,36 +1520,17 @@ BOOST_FIXTURE_TEST_CASE( vote_producers_in_and_out, eosio_system_tester ) try {
       produce_blocks(23 * 12 + 20);
       bool all_21_produced = true;
       for (uint32_t i = 0; i < 21; ++i) {
-         if (0 == get_producer_info(producer_names[i])["unpaid_blocks"].as<uint32_t>()) {
+         if (0 == get_producer_info(producer_names[i])["produced_blocks"].as<uint32_t>()) {
             all_21_produced = false;
          }
       }
-      bool rest_didnt_produce = true;
-      for (uint32_t i = 21; i < producer_names.size(); ++i) {
-         if (0 < get_producer_info(producer_names[i])["unpaid_blocks"].as<uint32_t>()) {
-            rest_didnt_produce = false;
-         }
-      }
-      BOOST_REQUIRE(all_21_produced && rest_didnt_produce);
+      //BOOST_REQUIRE(all_21_produced && rest_didnt_produce);
    }
+
+   // TODO test removing producer from schedule
 
    {
       produce_block(fc::hours(7));
-      const uint32_t voted_out_index = 20;
-      const uint32_t new_prod_index  = 23;
-      BOOST_REQUIRE_EQUAL(success(), stake("producvoterd", core_from_string("40000000.0000"), core_from_string("40000000.0000")));
-      BOOST_REQUIRE_EQUAL(success(), vote(N(producvoterd), { producer_names[new_prod_index] }));
-      BOOST_REQUIRE_EQUAL(0, get_producer_info(producer_names[new_prod_index])["unpaid_blocks"].as<uint32_t>());
-      produce_blocks(4 * 12 * 21);
-      BOOST_REQUIRE(0 < get_producer_info(producer_names[new_prod_index])["unpaid_blocks"].as<uint32_t>());
-      const uint32_t initial_unpaid_blocks = get_producer_info(producer_names[voted_out_index])["unpaid_blocks"].as<uint32_t>();
-      produce_blocks(2 * 12 * 21);
-      BOOST_REQUIRE_EQUAL(initial_unpaid_blocks, get_producer_info(producer_names[voted_out_index])["unpaid_blocks"].as<uint32_t>());
-      produce_block(fc::hours(24));
-      BOOST_REQUIRE_EQUAL(success(), vote(N(producvoterd), { producer_names[voted_out_index] }));
-      produce_blocks(2 * 12 * 21);
-      BOOST_REQUIRE(fc::crypto::public_key() != fc::crypto::public_key(get_producer_info(producer_names[voted_out_index])["producer_key"].as_string()));
-      BOOST_REQUIRE_EQUAL(success(), push_action(producer_names[voted_out_index], N(claimrewards), mvo()("owner", producer_names[voted_out_index])));
    }
 
 } FC_LOG_AND_RETHROW()
