@@ -727,7 +727,7 @@ BOOST_FIXTURE_TEST_CASE( producer_register_unregister, eosio_system_tester ) try
 BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::tolerance(1e-10)) try {
    activate_chain();
 
-   const double continuous_rate = 5.827 / 100.;
+   const double continuous_rate = 5.82729 / 100.;
    const double usecs_per_year  = 52 * 7 * 24 * 3600 * 1000000ll;
    const double secs_per_year   = 52 * 7 * 24 * 3600;
    const uint64_t useconds_per_min      = 60 * uint64_t(1000000);
@@ -749,58 +749,26 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
    BOOST_REQUIRE_EQUAL(success(), stake("producvotera", core_from_string("100000000.0000"), core_from_string("100000000.0000")));
 
    {
-      const auto     initial_global_state      = get_global_state();
-      const uint64_t initial_inflation_bucket  = initial_global_state["inflation_bucket"].as_uint64();
-      const uint64_t initial_inflation_calc    = initial_global_state["last_inflation_calculation"].as_uint64();
-      const int64_t  initial_savings           = get_balance(N(eosio.saving)).get_amount();
-
       const asset initial_supply  = get_token_supply();
-      const asset initial_balance = get_balance(N(defproducera));
 
-      // produce for 5 minutes seconds to trigger inflation calculation
-      produce_block(fc::seconds(5 * 60));
+      // produce for 23 hours and 55 minutes 
+      produce_block(fc::minutes(60 * 23 + 55 ));
+      produce_blocks(1);
+
+      const asset supply  = get_token_supply();
 
       const auto     global_state      = get_global_state();
       const int64_t  savings           = get_balance(N(eosio.saving)).get_amount();
-      const uint64_t inflation_bucket  = global_state["inflation_bucket"].as_uint64();
-      const uint64_t last_inflation_calc = global_state["last_inflation_calculation"].as_uint64();
+      const int64_t  ppay           = get_balance(N(eosio.ppay)).get_amount();
+      const int64_t  usage           = get_balance(N(eosio.usage)).get_amount();
 
-      prod = get_producer_info("defproducera");
-      //const asset supply  = get_token_supply();
-      const asset balance = get_balance(N(defproducera));
-  
-      auto usecs_between_fills = last_inflation_calc - initial_inflation_calc;
-      int32_t secs_between_fills = usecs_between_fills/1000000;
-
-      BOOST_REQUIRE_EQUAL(0, initial_savings);
-      BOOST_REQUIRE_EQUAL(0, initial_inflation_bucket);
-
-      BOOST_REQUIRE_EQUAL(int64_t( ( initial_supply.get_amount() * double(secs_between_fills) * continuous_rate ) / secs_per_year ),
-                          inflation_bucket);   
+      BOOST_REQUIRE_EQUAL(0, savings);
+      BOOST_REQUIRE_EQUAL(0, ppay);
+      BOOST_REQUIRE_EQUAL(0, usage);
+      BOOST_REQUIRE_EQUAL(initial_supply.get_amount(), supply.get_amount());
 
    }
 
-   {
-      const auto     initial_global_state      = get_global_state();
-      const uint64_t initial_inflation_bucket  = initial_global_state["inflation_bucket"].as_uint64();
-      const uint64_t initial_inflation_calc    = initial_global_state["last_inflation_calculation"].as_uint64();
-
-      const asset initial_supply  = get_token_supply();
-
-      // produce for 5 minutes seconds to trigger inflation calculation
-      produce_block(fc::seconds(5 * 60));
-
-      const auto     global_state      = get_global_state();
-      const uint64_t inflation_bucket  = global_state["inflation_bucket"].as_uint64();
-      const uint64_t last_inflation_calc = global_state["last_inflation_calculation"].as_uint64();
-
-      auto usecs_between_fills = last_inflation_calc - initial_inflation_calc;
-      int32_t secs_between_fills = usecs_between_fills/1000000;
-
-      BOOST_REQUIRE_EQUAL(int64_t( ( (initial_supply.get_amount() + initial_inflation_bucket) * double(usecs_between_fills) * continuous_rate ) / useconds_per_year ),
-                          inflation_bucket - initial_inflation_bucket);   
-
-   }
 
    {
       BOOST_REQUIRE_EQUAL(wasm_assert_msg("producer pay request not found"),
@@ -810,30 +778,46 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
 
 
    {
-      // 23 hours and 49 minutes, for first inflation distribution and defproducera can now claim their first rewards
-      produce_block(fc::seconds(23 * 3600 + 49 * 60));
       const auto     initial_global_state      = get_global_state();
-      const uint64_t initial_inflation_bucket  = initial_global_state["inflation_bucket"].as_uint64();
+      const uint64_t initial_distribution_time = initial_global_state["last_inflation_distribution"].as_uint64();
       const int64_t  initial_savings           = get_balance(N(eosio.saving)).get_amount();
+      const int64_t  initial_usage             = get_balance(N(eosio.usage)).get_amount();
+      const int64_t  initial_ppay              = get_balance(N(eosio.ppay)).get_amount();
 
-      // 1 more minute, for first inflation distribution and defproducera can now claim their first rewards
-      produce_block(fc::seconds(60));
+      const asset initial_supply  = get_token_supply();
 
-      prod = get_producer_info("defproducera");
-      BOOST_REQUIRE_EQUAL(0, prod["last_claim_time"].as<uint64_t>());
+      // produce for 5 more minutes for first inflation distribution and defproducera can now claim their first rewards
+      produce_block(fc::seconds(5 * 60));
+      produce_blocks(1);
 
       const auto global_state          = get_global_state();
-      const uint64_t inflation_bucket  = global_state["inflation_bucket"].as_uint64();
+      const uint64_t distribution_time = global_state["last_inflation_distribution"].as_uint64();
       const int64_t  saving            = get_balance(N(eosio.saving)).get_amount();
       const int64_t  usage             = get_balance(N(eosio.usage)).get_amount();
       const int64_t  ppay              = get_balance(N(eosio.ppay)).get_amount();
 
-      BOOST_REQUIRE_EQUAL(0, inflation_bucket);
-      BOOST_REQUIRE_EQUAL(initial_inflation_bucket, saving + usage + ppay);
+      const asset supply  = get_token_supply();
 
-      int64_t to_producers        = initial_inflation_bucket / 6;
+
+      auto usecs_between_distributions = distribution_time - initial_distribution_time;
+      int32_t secs_between_distributions = usecs_between_distributions/1000000;
+
+      auto inflation = int64_t( ( initial_supply.get_amount() * double(usecs_between_distributions) * continuous_rate ) / useconds_per_year );
+
+      std::cout << "------- initial supply: " << initial_supply.get_amount() << "\n";
+      std::cout << "------- supply: " << supply.get_amount() << "\n";
+      std::cout << "------- inflaton: " << inflation << "\n";
+      std::cout << "------- calc time: " << distribution_time << "\n";
+      std::cout << "------- init calc time: " << initial_distribution_time << "\n";
+
+      prod = get_producer_info("defproducera");
+      BOOST_REQUIRE_EQUAL(0, prod["last_claim_time"].as<uint64_t>());
+      BOOST_REQUIRE_EQUAL(inflation, supply.get_amount() - initial_supply.get_amount());
+      BOOST_REQUIRE_EQUAL(inflation, saving + usage + ppay);
+
+      int64_t to_producers        = inflation / 6;
       int64_t to_savings          = to_producers;
-      int64_t to_usage            = initial_inflation_bucket - to_producers - to_savings;
+      int64_t to_usage            = inflation - to_producers - to_savings;
 
       BOOST_REQUIRE_EQUAL(to_producers, ppay);
       BOOST_REQUIRE_EQUAL(to_savings, saving);
@@ -841,8 +825,11 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
       BOOST_REQUIRE(to_usage > 2 * (to_producers + to_savings));
       
       BOOST_REQUIRE_EQUAL(success(), push_action(N(defproducera), N(claimrewards), mvo()("owner", "defproducera")));
+      
       const asset balance = get_balance(N(defproducera));
       BOOST_REQUIRE_EQUAL(balance.get_amount(), to_producers);
+      BOOST_REQUIRE_EQUAL(0,get_balance(N(eosio.ppay)).get_amount());
+
 
    }
 
@@ -864,6 +851,7 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
          produce_block(fc::seconds(8 * 3600));
          produce_block(fc::seconds(8 * 3600));
          produce_block(fc::seconds(8 * 3600));
+         produce_blocks(1);
       }
 
       BOOST_REQUIRE_EQUAL(success(), push_action(N(defproducerc), N(claimrewards), mvo()("owner", "defproducerc")));
@@ -897,7 +885,8 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
    }
 
    {
-      produce_block(fc::days(712)); 
+      produce_block(fc::days(2555)); 
+      produce_blocks(1);
       const asset   supply  = get_token_supply();
       std::cout << "###############supply " << supply.get_amount() << "\n";
 
@@ -913,7 +902,7 @@ BOOST_FIXTURE_TEST_CASE(multiple_producer_pay, eosio_system_tester, * boost::uni
 
    const int64_t secs_per_year  = 52 * 7 * 24 * 3600;
    const double  usecs_per_year = secs_per_year * 1000000;
-   const double  cont_rate      = 5.827/100.;
+   const double  cont_rate      = 5.82729/100.;
 
    const asset net = core_from_string("80.0000");
    const asset cpu = core_from_string("80.0000");
@@ -929,6 +918,8 @@ BOOST_FIXTURE_TEST_CASE(multiple_producer_pay, eosio_system_tester, * boost::uni
          }
       }
 
+      activate_chain();
+
       setup_producer_accounts(producer_names);
       for (const auto& p: producer_names) {
          BOOST_REQUIRE_EQUAL( success(), regproducer(p) );
@@ -938,7 +929,6 @@ BOOST_FIXTURE_TEST_CASE(multiple_producer_pay, eosio_system_tester, * boost::uni
       }
    }
 
-   activate_chain();
 
    {
       auto proda = get_producer_info( N(defproducera) );
@@ -956,100 +946,66 @@ BOOST_FIXTURE_TEST_CASE(multiple_producer_pay, eosio_system_tester, * boost::uni
    // give a chance for everyone to produce blocks
    {
       std::cout << "############### producers " << producer_names.size() << "\n";
-      produce_blocks(12);
-  
-      //BOOST_REQUIRE(all_21_produced);
-   }
 
-   {
-      const uint32_t prod_index = 2;
-      const auto prod_name = producer_names[prod_index];
-
-      const auto     initial_global_state      = get_global_state();
-      const uint64_t initial_inflation_bucket  = initial_global_state["inflation_bucket"].as_uint64();
-      const uint64_t initial_inflation_calc    = initial_global_state["last_inflation_calculation"].as_uint64();
-      const int64_t  initial_savings           = get_balance(N(eosio.saving)).get_amount();
-      const asset    initial_supply            = get_token_supply();
-      const asset    initial_balance           = get_balance(prod_name);
-
-      // produce for 5 minutes seconds to trigger inflation calculation
-      produce_block(fc::seconds(5 * 60));
-
-      const auto     global_state      = get_global_state();
-      const uint64_t inflation_bucket  = global_state["inflation_bucket"].as_uint64();
-      const uint64_t last_inflation_calc = global_state["last_inflation_calculation"].as_uint64();
-      const int64_t  savings           = get_balance(N(eosio.saving)).get_amount();
-      const asset    supply            = get_token_supply();
-      const asset    balance           = get_balance(prod_name);
-
-      const uint64_t usecs_between_fills = last_inflation_calc - initial_inflation_calc;
-      const int32_t secs_between_fills = static_cast<int32_t>(usecs_between_fills / 1000000);
-
-      const int64_t expected_supply_growth = static_cast<int64_t>(initial_supply.get_amount() * double(usecs_between_fills) * cont_rate / usecs_per_year);
-      /**
-       * move to 24 hours check
-      BOOST_REQUIRE_EQUAL( int64_t(expected_supply_growth), supply.get_amount() - initial_supply.get_amount() );
-      BOOST_REQUIRE_EQUAL( int64_t(expected_supply_growth) - int64_t(expected_supply_growth)/6, savings - initial_savings );
-**/
-
-      BOOST_REQUIRE_EQUAL(0, initial_savings);
-      BOOST_REQUIRE_EQUAL(0, savings);
-      BOOST_REQUIRE_EQUAL(0, initial_inflation_bucket);
-      BOOST_REQUIRE_EQUAL(expected_supply_growth, inflation_bucket);  
-
-      BOOST_REQUIRE_EQUAL(wasm_assert_msg("producer pay request not found"),
-                        push_action(prod_name, N(claimrewards), mvo()("owner", prod_name)));
    }
 
 
-   // Wait for 23 hours 54 minutes for the first ditribution. By now, pervote_bucket has grown enough
-   // that a producer's share is more than 100 tokens.
-   produce_block(fc::seconds(23 * 3600 + 54 * 60));
-   produce_blocks(12);
-
    {
-      const uint32_t prod_index = 15;
+      const uint32_t prod_index = 0;
       const auto prod_name = producer_names[prod_index];
 
       const auto     initial_global_state      = get_global_state();
-      const uint64_t initial_inflation_bucket  = initial_global_state["inflation_bucket"].as_uint64();
+      const uint64_t initial_distribution_time = initial_global_state["last_inflation_distribution"].as_uint64();
       const int64_t  initial_savings           = get_balance(N(eosio.saving)).get_amount();
       const asset    initial_supply            = get_token_supply();
       const asset    initial_usage             = get_balance(N(eosio.usage));
-      const asset    initial_ppay              = get_balance(N(eosio.ppay));
       const asset    initial_balance           = get_balance(prod_name);
 
-      // 1 more minute, for first inflation distribution and defproducera can now claim their first rewards
-      produce_block(fc::seconds(60));
+      // Wait for 24 hours for the first ditribution. By now, pervote_bucket has grown enough
 
-     // BOOST_REQUIRE_EQUAL(success(), push_action(prod_name, N(claimrewards), mvo()("owner", prod_name)));
+      produce_block(fc::minutes(20*60 * 24 + 1));
+      produce_blocks(1);
+
+      // BOOST_REQUIRE_EQUAL(success(), push_action(prod_name, N(claimrewards), mvo()("owner", prod_name)));
 
       const auto     global_state      = get_global_state();
-      const uint64_t inflation_bucket  = global_state["inflation_bucket"].as_uint64();
+      const uint64_t distribution_time = global_state["last_inflation_distribution"].as_uint64();
       const int64_t  saving            = get_balance(N(eosio.saving)).get_amount();
       const int64_t  usage             = get_balance(N(eosio.usage)).get_amount();
-      const int64_t  ppay              = get_balance(N(eosio.ppay)).get_amount();
+      const int64_t  initial_ppay              = get_balance(N(eosio.ppay)).get_amount();
       const asset    balance           = get_balance(prod_name);
 
-      std::cout << "&&&&&&&&&&&&&& inflation bucket: " << inflation_bucket << "\n";
-      std::cout << "&&&&&&&&&&&&&& initial_inflation_bucket: " << initial_inflation_bucket << "\n";
+      const uint64_t usecs_between_fills = distribution_time - initial_distribution_time;
+      const int32_t secs_between_fills = static_cast<int32_t>(usecs_between_fills / 1000000);
+
+      const int64_t expected_supply_growth = static_cast<int64_t>(initial_supply.get_amount() * double(usecs_between_fills) * cont_rate / usecs_per_year);
+
+      std::cout << "&&&&&&&&&&&&&& expected growth: " << expected_supply_growth << "\n";
+      std::cout << "&&&&&&&&&&&&&& ppay: " << initial_ppay << "\n";
       std::cout << "&&&&&&&&&&&&&& usage: " << usage << "\n";
+      std::cout << "############### producers " << producer_names.size() << "\n";
 
-      BOOST_REQUIRE_EQUAL(0, inflation_bucket);
-      BOOST_REQUIRE_EQUAL(initial_inflation_bucket, saving + usage + ppay);
+      BOOST_REQUIRE_EQUAL(expected_supply_growth, saving + usage + initial_ppay);
 
+      auto producer_pay = initial_ppay / producer_names.size();      
       BOOST_REQUIRE_EQUAL(success(), push_action(prod_name, N(claimrewards), mvo()("owner", prod_name)));
+      BOOST_REQUIRE_EQUAL(wasm_assert_msg("producer pay request not found"),
+                        push_action(prod_name, N(claimrewards), mvo()("owner", prod_name)));
+      
+      const int64_t  ppay              = get_balance(N(eosio.ppay)).get_amount();
+      BOOST_REQUIRE_EQUAL(ppay, initial_ppay - producer_pay);
+
+      for ( size_t i = 1; i < producer_names.size(); ++i ) {
+         BOOST_REQUIRE_EQUAL(success(), push_action(producer_names[i], N(claimrewards), mvo()("owner", producer_names[i])));
+         const asset balance = get_balance(producer_names[i]);
+         BOOST_REQUIRE_EQUAL( balance.get_amount(), producer_pay );         
+      }
+
+      // change due to rounding errors left in account after all producers collect
+      BOOST_REQUIRE( get_balance(N(eosio.ppay)).get_amount() < producer_names.size());  
+      
    }
 
-   {
-      const uint32_t prod_index = 24;
-      const auto prod_name = producer_names[prod_index];
-      BOOST_REQUIRE_EQUAL(success(),
-                          push_action(prod_name, N(claimrewards), mvo()("owner", prod_name)));
-      BOOST_REQUIRE(100 * 10000 <= get_balance(prod_name).get_amount());
-      BOOST_REQUIRE_EQUAL(wasm_assert_msg("producer pay request not found"),
-                          push_action(prod_name, N(claimrewards), mvo()("owner", prod_name)));
-   }
 
    {
       const uint32_t rmv_index = 5;
@@ -1072,7 +1028,7 @@ BOOST_FIXTURE_TEST_CASE(multiple_producer_pay, eosio_system_tester, * boost::uni
       BOOST_REQUIRE( fc::crypto::public_key() == fc::crypto::public_key(info["producer_key"].as_string()) );
       BOOST_REQUIRE_EQUAL( wasm_assert_msg("producer does not have an active key"),
                            push_action(prod_name, N(claimrewards), mvo()("owner", prod_name) ) );
-      produce_blocks(3 * 21 * 12);
+
 
    }
 

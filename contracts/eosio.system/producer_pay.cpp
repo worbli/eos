@@ -5,7 +5,7 @@
 namespace eosiosystem {
 
    const int64_t  min_activated_stake   = 150'000'000'0000;
-   const double   continuous_rate       = 0.05827;         // 6% annual rate
+   const double   continuous_rate       = 0.0582729; // 6% annual rate
    const uint32_t blocks_per_year       = 52*7*24*2*3600;   // half seconds per year
    const uint32_t seconds_per_year      = 52*7*24*3600;
    const uint32_t blocks_per_day        = 2 * 24 * 3600;
@@ -24,9 +24,6 @@ namespace eosiosystem {
       /** until activated no new rewards are paid */
       if( !_gstate.is_producer_schedule_active )
          return;
-
-      if( _gstate.last_inflation_calculation == 0 ) /// start the presses
-         _gstate.last_inflation_calculation = ct;
 
       if( _gstate.last_inflation_distribution == 0 ) /// start the presses
          _gstate.last_inflation_distribution = ct;    
@@ -48,36 +45,28 @@ namespace eosiosystem {
          update_producers( timestamp );
       }
 
-      /// calculate inflation once 5 minutes
-      if( ct - _gstate.last_inflation_calculation > useconds_per_min * 5) {
-         const asset token_supply   = token( N(eosio.token)).get_supply(symbol_type(system_token_symbol).name() ); 
-         const auto usecs_since_last_fill = ct - _gstate.last_inflation_calculation;
-         auto new_tokens = static_cast<int64_t>( (continuous_rate * double(token_supply.amount + _gstate.inflation_bucket) * double(usecs_since_last_fill)) / double(useconds_per_year) );
-
-         _gstate.inflation_bucket += new_tokens;
-         _gstate.last_inflation_calculation = ct;
-         return;
-      }
 
       /// only distribute inflation once a day
-      if( ct - _gstate.last_inflation_distribution > useconds_per_day && _gstate.inflation_bucket > 0 ) {
-         auto to_producers       = _gstate.inflation_bucket / 6;
+      if( ct - _gstate.last_inflation_distribution > useconds_per_day ) {
+         const asset token_supply   = token( N(eosio.token)).get_supply(symbol_type(system_token_symbol).name() ); 
+         const auto usecs_since_last_fill = ct - _gstate.last_inflation_distribution;
+         auto new_tokens = static_cast<int64_t>( (continuous_rate * double(token_supply.amount) * double(usecs_since_last_fill)) / double(useconds_per_year) );
+
+         auto to_producers       = new_tokens / 6;
          auto to_savings         = to_producers;
-         auto to_usage           = _gstate.inflation_bucket - (to_producers + to_savings);
+         auto to_usage           = new_tokens - (to_producers + to_savings);
 
          INLINE_ACTION_SENDER(eosio::token, issue)( N(eosio.token), {{N(eosio),N(active)}},
-                                                    {N(eosio), asset(_gstate.inflation_bucket), std::string("issue tokens for producer pay and savings and usage")} );
+                                                    {N(eosio), asset(new_tokens), std::string("issue tokens for producer pay and savings and usage")} );
 
          INLINE_ACTION_SENDER(eosio::token, transfer)( N(eosio.token), {N(eosio),N(active)},
                                                        { N(eosio), N(eosio.saving), asset(to_savings), "unallocated inflation" } );
 
          INLINE_ACTION_SENDER(eosio::token, transfer)( N(eosio.token), {N(eosio),N(active)},
-                                                       { N(eosio), N(eosio.ppay), asset(to_producers), "fund producer bucket" } );
+                                                       { N(eosio), N(eosio.ppay), asset(to_producers), "fund producer account" } );
 
          INLINE_ACTION_SENDER(eosio::token, transfer)( N(eosio.token), {N(eosio),N(active)},
-                                                       { N(eosio), N(eosio.usage), asset(to_usage), "fund usage bucket" } );
-
-        _gstate.inflation_bucket = 0;
+                                                       { N(eosio), N(eosio.usage), asset(to_usage), "fund usage account" } );
 
         std::vector< account_name > active_producers;
         for( const auto& p : _producers ) {
