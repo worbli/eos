@@ -1174,7 +1174,6 @@ BOOST_FIXTURE_TEST_CASE(producer_onblock_check, eosio_system_tester) try {
       BOOST_REQUIRE_EQUAL(false, all_21_produced);
 
       const auto     global_state      = get_global_state();
-      const uint64_t inflation_bucket  = global_state["inflation_bucket"].as_uint64();
       const int64_t  saving            = get_balance(N(eosio.saving)).get_amount();
       const int64_t  usage             = get_balance(N(eosio.usage)).get_amount();
       const int64_t  ppay              = get_balance(N(eosio.ppay)).get_amount();
@@ -1182,7 +1181,6 @@ BOOST_FIXTURE_TEST_CASE(producer_onblock_check, eosio_system_tester) try {
       BOOST_REQUIRE_EQUAL(0, saving);
       BOOST_REQUIRE_EQUAL(0, usage);
       BOOST_REQUIRE_EQUAL(0, ppay);
-      BOOST_REQUIRE_EQUAL(0, inflation_bucket);
 
       BOOST_REQUIRE_EQUAL(wasm_assert_msg( "producer pay request not found" ),
                           push_action(producer_names.front(), N(claimrewards), mvo()("owner", producer_names.front())));

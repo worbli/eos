@@ -34,7 +34,6 @@ namespace eosiosystem {
       uint16_t             last_producer_schedule_size = 0;
       double               total_producer_vote_weight = 0; /// the sum of all producer votes
       bool                 is_producer_schedule_active = false;
-      uint64_t             inflation_bucket = 0;
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters,
@@ -42,7 +41,7 @@ namespace eosiosystem {
                                 (last_producer_schedule_update)(last_inflation_calculation)
                                 (last_inflation_distribution)(total_activated_stake)
                                 (thresh_activated_stake_time)(last_producer_schedule_size)(total_producer_vote_weight)
-                                (is_producer_schedule_active)(inflation_bucket) )
+                                (is_producer_schedule_active) )
    };
 
    struct producer_info {
