@@ -144,6 +144,14 @@ public:
        return r;
     }
 
+    auto activate_chain() {
+       auto r = base_tester::push_action(N(eosio), N(togglesched), N(eosio), mvo()
+                       ("is_active",  1 )
+                    );
+       produce_block();
+       return r;
+    }
+
 
     auto undelegate_bandwidth( name from, name receiver, asset net, asset cpu ) {
        auto r = base_tester::push_action(N(eosio), N(undelegatebw), from, mvo()
@@ -183,7 +191,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
     try {
 
         // Create eosio.msig and eosio.token
-        create_accounts({N(eosio.msig), N(eosio.token), N(eosio.ram), N(eosio.ramfee), N(eosio.stake), N(eosio.vpay), N(eosio.bpay), N(eosio.saving) });
+        create_accounts({N(eosio.msig), N(eosio.token), N(eosio.ppay), N(eosio.usage), N(eosio.stake), N(eosio.bpay), N(eosio.saving) });
 
         // Set code for the following accounts:
         //  - eosio (code: eosio.bios) (already set by tester constructor)
@@ -246,7 +254,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         for( auto pro : producer_candidates ) {
            register_producer(pro);
         }
-
+ 
         // No producers will be set, since the total activated stake is less than 150,000,000
         produce_blocks_for_n_rounds(2); // 2 rounds since new producer schedule is set when the first block of next round is irreversible
         auto active_schedule = control->head_block_state()->active_schedule;
@@ -258,11 +266,12 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         // Since the total activated stake is less than 150,000,000, it shouldn't be possible to claim rewards
         BOOST_REQUIRE_THROW(claim_rewards(N(runnerup1)), eosio_assert_message_exception);
 
+        activate_chain();
         // Since the total vote stake is more than 150,000,000, the new producer set will be set
         produce_blocks_for_n_rounds(2); // 2 rounds since new producer schedule is set when the first block of next round is irreversible
         active_schedule = control->head_block_state()->active_schedule;
         std::cout << "producer schedule size: " << active_schedule.producers.size() << "\n";
-        BOOST_REQUIRE(active_schedule.producers.size() == 21);
+        BOOST_REQUIRE(active_schedule.producers.size() == 24);
         BOOST_TEST(active_schedule.producers.at(0).producer_name == "proda");
         BOOST_TEST(active_schedule.producers.at(1).producer_name == "prodb");
         BOOST_TEST(active_schedule.producers.at(2).producer_name == "prodc");
