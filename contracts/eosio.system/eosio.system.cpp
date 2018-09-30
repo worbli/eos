@@ -96,6 +96,7 @@ namespace eosiosystem {
                             /*  no need to parse authorities
                             const authority& owner,
                             const authority& active*/ ) {
+      require_auth( _self );
 
       if( creator != _self ) {
          auto tmp = newact >> 4;
