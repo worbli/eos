@@ -160,6 +160,14 @@
          {"name":"transfer", "type":"bool"}
       ]
     },{
+      "name": "delegateram",
+      "base": "",
+      "fields": [
+         {"name":"from", "type":"account_name"},
+         {"name":"receiver", "type":"account_name"},
+         {"name":"ram_bytes", "type":"int64"}
+      ]
+    },{
       "name": "undelegatebw",
       "base": "",
       "fields": [
@@ -182,6 +190,15 @@
          {"name":"to", "type":"account_name"},
          {"name":"net_weight", "type":"asset"},
          {"name":"cpu_weight", "type":"asset"}
+      ]
+    },{
+      "name": "delegated_ram",
+      "base": "",
+      "fields": [
+         {"name":"from", "type":"account_name"},
+         {"name":"to", "type":"account_name"},
+         {"name":"ram_stake", "type":"asset"},
+         {"name":"ram_bytes", "type":"int64"}
       ]
     },{
       "name": "user_resources",
@@ -435,6 +452,10 @@
       "type": "delegatebw",
       "ricardian_contract": ""
    },{
+      "name": "delegateram",
+      "type": "delegateram",
+      "ricardian_contract": ""
+   },{
       "name": "undelegatebw",
       "type": "undelegatebw",
       "ricardian_contract": ""
@@ -516,6 +537,12 @@
     },{
       "name": "delband",
       "type": "delegated_bandwidth",
+      "index_type": "i64",
+      "key_names" : ["to"],
+      "key_types" : ["uint64"]
+    },{
+      "name": "delram",
+      "type": "delegated_ram",
       "index_type": "i64",
       "key_names" : ["to"],
       "key_types" : ["uint64"]

@@ -61,6 +61,22 @@ namespace eosiosystem {
 
    };
 
+   /**
+    *  Every user 'from' has a scope/table that uses every receipient 'to' as the primary key.
+    */
+   struct delegated_ram {
+      account_name  from;
+      account_name  to;
+      asset         ram_stake;
+      int64_t       ram_bytes = 0;
+
+      uint64_t  primary_key()const { return to; }
+
+      // explicit serialization macro is not necessary, used here only to improve compilation time
+      EOSLIB_SERIALIZE( delegated_ram, (from)(to)(ram_stake)(ram_bytes) )
+
+   };
+
    struct refund_request {
       account_name  owner;
       time          request_time;
@@ -81,6 +97,7 @@ namespace eosiosystem {
     */
    typedef eosio::multi_index< N(userres), user_resources>      user_resources_table;
    typedef eosio::multi_index< N(delband), delegated_bandwidth> del_bandwidth_table;
+   typedef eosio::multi_index< N(delram), delegated_ram>        del_ram_table;
    typedef eosio::multi_index< N(refunds), refund_request>      refunds_table;
 
 
@@ -215,15 +232,22 @@ namespace eosiosystem {
    void system_contract::sellram( account_name account, int64_t bytes ) {
       require_auth( account );
       eosio_assert( bytes > 0, "cannot sell negative byte" );
+      int64_t delegated_ram_bytes = 0;
+
+      del_ram_table  delram( _self, _self );
+      auto ram_itr = delram.find( account );
+
+      if(ram_itr != delram.end())
+            delegated_ram_bytes = ram_itr->ram_bytes;
 
       user_resources_table  userres( _self, account );
       auto res_itr = userres.find( account );
       eosio_assert( res_itr != userres.end(), "no resource row" );
-      eosio_assert( res_itr->ram_bytes >= bytes, "insufficient quota" );
+      eosio_assert( res_itr->ram_bytes - delegated_ram_bytes >= bytes, "insufficient quota" );
        
       asset tokens_out;
       int64_t ram_bytes = res_itr->ram_bytes;
-      float_t token_per_bytes = res_itr->ram_stake.amount / (float_t)ram_bytes;
+      float_t token_per_bytes = res_itr->ram_stake.amount / (float_t)(ram_bytes - delegated_ram_bytes);
       int64_t tokens = token_per_bytes * bytes;
 
       tokens_out = asset{tokens};
@@ -473,6 +497,79 @@ namespace eosiosystem {
       //              "cannot undelegate bandwidth until the chain is activated (at least 15% of all tokens participate in voting)" );
 
       changebw( from, receiver, -unstake_net_quantity, -unstake_cpu_quantity, false);
+   } // undelegatebw
+
+   void system_contract::delegateram( account_name from, account_name receiver,
+                                     int64_t bytes_delta )
+   {
+      require_auth( N(eosio) );
+      eosio_assert( bytes_delta >= 0, "must delegate a positive amount" );
+
+      const asset token_supply   = token( N(eosio.token)).get_supply(symbol_type(system_token_symbol).name() );
+      const uint64_t token_precision = token_supply.symbol.precision();
+      const uint64_t bytes_per_token = uint64_t((_gstate.max_ram_size / (double)token_supply.amount) * pow(10,token_precision));      
+      auto amount = int64_t((bytes_delta * pow(10,token_precision)) / bytes_per_token);
+
+      require_auth( from );
+      eosio_assert( bytes_delta != 0, "should stake non-zero amount" );
+
+
+      // update stake delegated from "from" to "receiver"
+      {
+         del_ram_table     del_tbl( _self, from);
+         auto itr = del_tbl.find( receiver );
+         if( itr == del_tbl.end() ) {
+            itr = del_tbl.emplace( from, [&]( auto& dbo ){
+                  dbo.from          = from;
+                  dbo.to            = receiver;
+                  dbo.ram_stake     = asset{amount};
+                  dbo.ram_bytes     = bytes_delta;
+               });
+         }
+         else {
+            del_tbl.modify( itr, 0, [&]( auto& dbo ){
+                  dbo.ram_stake    += asset{amount};
+                  dbo.ram_bytes    += bytes_delta;
+               });
+         }
+
+      } // itr can be invalid, should go out of scope
+
+      // update totals of "receiver"
+      {
+         user_resources_table   totals_tbl( _self, receiver );
+         auto tot_itr = totals_tbl.find( receiver );
+         if( tot_itr ==  totals_tbl.end() ) {
+            tot_itr = totals_tbl.emplace( from, [&]( auto& tot ) {
+                  tot.owner = receiver;
+                  tot.ram_stake    = asset{amount};
+                  tot.ram_bytes    = bytes_delta;
+               });
+         } else {
+            totals_tbl.modify( tot_itr, 0, [&]( auto& tot ) {
+                  tot.ram_stake    += asset{amount};
+                  tot.ram_bytes    += bytes_delta;
+               });
+         }
+         eosio_assert( asset(0) <= tot_itr->net_weight, "insufficient staked total net bandwidth" );
+         eosio_assert( asset(0) <= tot_itr->cpu_weight, "insufficient staked total cpu bandwidth" );
+
+         set_resource_limits( receiver, tot_itr->ram_bytes, tot_itr->net_weight.amount, tot_itr->cpu_weight.amount );
+
+         if ( tot_itr->net_weight == asset(0) && tot_itr->cpu_weight == asset(0)  && tot_itr->ram_bytes == 0 && 
+              tot_itr->ram_stake == asset(0) ) {
+            totals_tbl.erase( tot_itr );
+         }
+      } // tot_itr can be invalid, should go out of scope
+
+   } // delegateram
+
+   void system_contract::undelegateram( account_name from, account_name receiver,
+                                       int64_t bytes )
+   {
+      eosio_assert( 0 <= bytes, "must undelegate a positive amount" );
+      eosio_assert( false, "undelegate ram not supoorted" );
+
    } // undelegatebw
 
 

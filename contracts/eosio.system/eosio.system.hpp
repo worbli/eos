@@ -109,6 +109,10 @@ namespace eosiosystem {
          void delegatebw( account_name from, account_name receiver,
                           asset stake_net_quantity, asset stake_cpu_quantity, bool transfer );
 
+         void delegateram( account_name from, account_name receiver,
+                          int64_t bytes );
+
+
 
          /**
           *  Decreases the total tokens delegated by from to receiver and/or
@@ -128,6 +132,9 @@ namespace eosiosystem {
           */
          void undelegatebw( account_name from, account_name receiver,
                             asset unstake_net_quantity, asset unstake_cpu_quantity );
+
+         void undelegateram( account_name from, account_name receiver,
+                          int64_t bytes );
 
 
          /**
