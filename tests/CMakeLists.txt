@@ -71,11 +71,11 @@ set_property(TEST bnet_nodeos_sanity_lr_test PROPERTY LABELS long_running_tests)
 #add_test(NAME distributed_transactions_lr_test COMMAND tests/distributed-transactions-test.py -d 2 -p 21 -n 21 -v --clean-run --dump-error-detail WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 #set_property(TEST distributed_transactions_lr_test PROPERTY LABELS long_running_tests)
 
-add_test(NAME nodeos_voting_lr_test COMMAND tests/nodeos_voting_test.py -v --clean-run --dump-error-detail WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-set_property(TEST nodeos_voting_lr_test PROPERTY LABELS long_running_tests)
+#add_test(NAME nodeos_voting_lr_test COMMAND tests/nodeos_voting_test.py -v --clean-run --dump-error-detail WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+#set_property(TEST nodeos_voting_lr_test PROPERTY LABELS long_running_tests)
 
-add_test(NAME bnet_nodeos_voting_lr_test COMMAND tests/nodeos_voting_test.py -v --p2p-plugin bnet --clean-run --dump-error-detail WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
-set_property(TEST bnet_nodeos_voting_lr_test PROPERTY LABELS long_running_tests)
+#add_test(NAME bnet_nodeos_voting_lr_test COMMAND tests/nodeos_voting_test.py -v --p2p-plugin bnet --clean-run --dump-error-detail WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
+#set_property(TEST bnet_nodeos_voting_lr_test PROPERTY LABELS long_running_tests)
 
 add_test(NAME nodeos_under_min_avail_ram_lr_test COMMAND tests/nodeos_under_min_avail_ram.py -v --clean-run --dump-error-detail WORKING_DIRECTORY ${CMAKE_BINARY_DIR})
 set_property(TEST nodeos_under_min_avail_ram_lr_test PROPERTY LABELS long_running_tests)
