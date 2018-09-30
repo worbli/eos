@@ -500,18 +500,18 @@ namespace eosiosystem {
    } // undelegatebw
 
    void system_contract::delegateram( account_name from, account_name receiver,
-                                     int64_t bytes_delta )
+                                     int64_t bytes )
    {
       require_auth( N(eosio) );
-      eosio_assert( bytes_delta >= 0, "must delegate a positive amount" );
+      eosio_assert( bytes >= 0, "must delegate a positive amount" );
 
       const asset token_supply   = token( N(eosio.token)).get_supply(symbol_type(system_token_symbol).name() );
       const uint64_t token_precision = token_supply.symbol.precision();
       const uint64_t bytes_per_token = uint64_t((_gstate.max_ram_size / (double)token_supply.amount) * pow(10,token_precision));      
-      auto amount = int64_t((bytes_delta * pow(10,token_precision)) / bytes_per_token);
+      auto amount = int64_t((bytes * pow(10,token_precision)) / bytes_per_token);
 
       require_auth( from );
-      eosio_assert( bytes_delta != 0, "should stake non-zero amount" );
+      eosio_assert( bytes != 0, "should stake non-zero amount" );
 
 
       // update stake delegated from "from" to "receiver"
@@ -523,13 +523,13 @@ namespace eosiosystem {
                   dbo.from          = from;
                   dbo.to            = receiver;
                   dbo.ram_stake     = asset{amount};
-                  dbo.ram_bytes     = bytes_delta;
+                  dbo.ram_bytes     = bytes;
                });
          }
          else {
             del_tbl.modify( itr, 0, [&]( auto& dbo ){
                   dbo.ram_stake    += asset{amount};
-                  dbo.ram_bytes    += bytes_delta;
+                  dbo.ram_bytes    += bytes;
                });
          }
 
@@ -543,12 +543,12 @@ namespace eosiosystem {
             tot_itr = totals_tbl.emplace( from, [&]( auto& tot ) {
                   tot.owner = receiver;
                   tot.ram_stake    = asset{amount};
-                  tot.ram_bytes    = bytes_delta;
+                  tot.ram_bytes    = bytes;
                });
          } else {
             totals_tbl.modify( tot_itr, 0, [&]( auto& tot ) {
                   tot.ram_stake    += asset{amount};
-                  tot.ram_bytes    += bytes_delta;
+                  tot.ram_bytes    += bytes;
                });
          }
          eosio_assert( asset(0) <= tot_itr->net_weight, "insufficient staked total net bandwidth" );
