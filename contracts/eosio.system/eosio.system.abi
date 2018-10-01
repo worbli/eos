@@ -269,7 +269,8 @@
          {"name":"thresh_activated_stake_time",   "type":"uint64"},
          {"name":"last_producer_schedule_size",   "type":"uint16"},
          {"name":"total_producer_vote_weight",    "type":"float64"},
-         {"name":"is_producer_schedule_active",   "type":"bool"}
+         {"name":"is_producer_schedule_active",   "type":"bool"},
+         {"name":"network_usage_level",           "type":"float64"}
       ]
     },{
       "name": "producer_info",
