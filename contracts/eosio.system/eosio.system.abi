@@ -263,7 +263,6 @@
          {"name":"total_ram_bytes_reserved",      "type":"uint64"},
          {"name":"total_ram_stake",               "type":"int64"},
          {"name":"last_producer_schedule_update", "type":"block_timestamp_type"},
-         {"name":"last_inflation_calculation",     "type":"uint64"},
          {"name":"last_inflation_distribution",   "type":"uint64"},
          {"name":"total_activated_stake",         "type":"int64"},
          {"name":"thresh_activated_stake_time",   "type":"uint64"},
