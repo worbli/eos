@@ -269,7 +269,7 @@
          {"name":"last_producer_schedule_size",   "type":"uint16"},
          {"name":"total_producer_vote_weight",    "type":"float64"},
          {"name":"is_producer_schedule_active",   "type":"bool"},
-         {"name":"network_usage_level",           "type":"float64"}
+         {"name":"network_usage_level",           "type":"uint8"}
       ]
     },{
       "name": "producer_info",
@@ -322,6 +322,12 @@
       "base": "",
       "fields": [
         {"name":"max_ram_size",     "type":"uint64"}
+      ]
+    },{
+      "name": "setusagelvl",
+      "base": "",
+      "fields": [
+        {"name":"new_level",     "type":"uint8"}
       ]
     },{
       "name": "claimrewards",
@@ -470,6 +476,10 @@
    },{
       "name": "setram",
       "type": "setram",
+      "ricardian_contract": ""
+   },{
+      "name": "setusagelvl",
+      "type": "setusagelvl",
       "ricardian_contract": ""
    },{
       "name": "unregprod",

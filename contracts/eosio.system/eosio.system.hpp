@@ -33,7 +33,7 @@ namespace eosiosystem {
       uint16_t             last_producer_schedule_size = 0;
       double               total_producer_vote_weight = 0; /// the sum of all producer votes
       bool                 is_producer_schedule_active = false;
-      double               network_usage_level = 0.0;
+      uint8_t              network_usage_level = 0;
 
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE_DERIVED( eosio_global_state, eosio::blockchain_parameters,
@@ -167,6 +167,8 @@ namespace eosiosystem {
          void togglesched( bool is_active );
 
          void setram( uint64_t max_ram_size );
+      
+         void setusagelvl( uint8_t new_level );
 
          void setparams( const eosio::blockchain_parameters& params );
 

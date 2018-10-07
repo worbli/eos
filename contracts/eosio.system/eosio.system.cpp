@@ -48,6 +48,17 @@ namespace eosiosystem {
       _global.set( _gstate, _self );
    }
 
+   void system_contract::setusagelvl( uint8_t new_level ) {
+      require_auth( _self );
+
+      eosio_assert( _gstate.network_usage_level < new_level, "usage level may only be increased" ); 
+      eosio_assert( new_level <= 100, "usage level cannot excced 100" );
+      eosio_assert( new_level > 0, "usage level cannot be negative" );
+
+      _gstate.network_usage_level = new_level;
+      _global.set( _gstate, _self );
+   }
+
    void system_contract::setparams( const eosio::blockchain_parameters& params ) {
       require_auth( N(eosio) );
       (eosio::blockchain_parameters&)(_gstate) = params;
@@ -70,16 +81,16 @@ namespace eosiosystem {
    }
 
    // worbli admin
-        void system_contract::setprods( std::vector<eosio::producer_key> schedule ) {
-            (void)schedule; // schedule argument just forces the deserialization of the action data into vector<producer_key> (necessary check)
-            require_auth( _self );
+   void system_contract::setprods( std::vector<eosio::producer_key> schedule ) {
+      (void)schedule; // schedule argument just forces the deserialization of the action data into vector<producer_key> (necessary check)
+      require_auth( _self );
 
-            constexpr size_t max_stack_buffer_size = 512;
-            size_t size = action_data_size();
-            char* buffer = (char*)( max_stack_buffer_size < size ? malloc(size) : alloca(size) );
-            read_action_data( buffer, size );
-            set_proposed_producers(buffer, size);
-         }
+      constexpr size_t max_stack_buffer_size = 512;
+      size_t size = action_data_size();
+      char* buffer = (char*)( max_stack_buffer_size < size ? malloc(size) : alloca(size) );
+      read_action_data( buffer, size );
+      set_proposed_producers(buffer, size);
+   }
 
 
    /**
@@ -129,7 +140,7 @@ EOSIO_ABI( eosiosystem::system_contract,
      // native.hpp (newaccount definition is actually in eosio.system.cpp)
      (newaccount)(updateauth)(deleteauth)(linkauth)(unlinkauth)(canceldelay)(onerror)
      // eosio.system.cpp
-     (setram)(setparams)(setpriv)(rmvproducer)
+     (setram)(setparams)(setpriv)(rmvproducer)(setusagelvl)
      // delegate_bandwidth.cpp
      (buyrambytes)(buyram)(sellram)(delegateram)(delegatebw)(undelegatebw)(refund)
      // voting.cpp
