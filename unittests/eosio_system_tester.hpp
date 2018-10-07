@@ -487,6 +487,12 @@ public:
       ); 
    }
 
+   void set_network_usage(int level) {
+      push_action( N(eosio), N(setusagelvl), mvo()
+                          ("new_level",  level )
+      ); 
+   }
+
    void cross_15_percent_threshold() {
       setup_producer_accounts({N(producer1111)});
       regproducer(N(producer1111));

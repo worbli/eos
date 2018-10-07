@@ -815,8 +815,11 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
       BOOST_REQUIRE_EQUAL(inflation, supply.get_amount() - initial_supply.get_amount());
       BOOST_REQUIRE_EQUAL(inflation, saving + usage + ppay);
 
-      int64_t to_producers        = inflation / 6;
-      int64_t to_savings          = to_producers;
+      const uint16_t base_producer_rate = 250;
+      auto max_to_producers   = inflation / 6;
+      auto to_producers       = (max_to_producers * base_producer_rate) / 1000;
+
+      int64_t to_savings          = max_to_producers + max_to_producers - to_producers;
       int64_t to_usage            = inflation - to_producers - to_savings;
 
       BOOST_REQUIRE_EQUAL(to_producers, ppay);

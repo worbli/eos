@@ -52,8 +52,20 @@ namespace eosiosystem {
          const auto usecs_since_last_fill = ct - _gstate.last_inflation_distribution;
          auto new_tokens = static_cast<int64_t>( (continuous_rate * double(token_supply.amount) * double(usecs_since_last_fill)) / double(useconds_per_year) );
 
-         auto to_producers       = new_tokens / 6;
-         auto to_savings         = to_producers;
+      /** Percentages are fixed point with a denominator of 1000 */
+         const uint16_t base_producer_rate = 250; // 25%
+         uint16_t actual_producer_rate = 0;   
+
+         if(_gstate.network_usage_level == 0)
+            actual_producer_rate = base_producer_rate;
+         else if((_gstate.network_usage_level < 30))
+            actual_producer_rate = base_producer_rate + 25 * _gstate.network_usage_level;
+         else
+            actual_producer_rate = 1000;
+
+         auto max_to_producers   = new_tokens / 6;
+         auto to_producers       = (max_to_producers * actual_producer_rate) / 1000;
+         auto to_savings         = max_to_producers + max_to_producers - to_producers;
          auto to_usage           = new_tokens - (to_producers + to_savings);
 
          INLINE_ACTION_SENDER(eosio::token, issue)( N(eosio.token), {{N(eosio),N(active)}},
