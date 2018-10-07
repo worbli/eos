@@ -727,7 +727,7 @@ BOOST_FIXTURE_TEST_CASE( producer_register_unregister, eosio_system_tester ) try
 BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::tolerance(1e-10)) try {
    activate_chain();
 
-   const double continuous_rate = 5.82729 / 100.;
+   const double continuous_rate = 5.827323 / 100.;
    const double usecs_per_year  = 52 * 7 * 24 * 3600 * 1000000ll;
    const double secs_per_year   = 52 * 7 * 24 * 3600;
    const uint64_t useconds_per_min      = 60 * uint64_t(1000000);
@@ -798,17 +798,10 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
 
       const asset supply  = get_token_supply();
 
-
       auto usecs_between_distributions = distribution_time - initial_distribution_time;
       int32_t secs_between_distributions = usecs_between_distributions/1000000;
 
       auto inflation = int64_t( ( initial_supply.get_amount() * double(usecs_between_distributions) * continuous_rate ) / useconds_per_year );
-
-      std::cout << "------- initial supply: " << initial_supply.get_amount() << "\n";
-      std::cout << "------- supply: " << supply.get_amount() << "\n";
-      std::cout << "------- inflaton: " << inflation << "\n";
-      std::cout << "------- calc time: " << distribution_time << "\n";
-      std::cout << "------- init calc time: " << initial_distribution_time << "\n";
 
       prod = get_producer_info("defproducera");
       BOOST_REQUIRE_EQUAL(0, prod["last_claim_time"].as<uint64_t>());
@@ -842,51 +835,114 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
                           push_action(N(defproducerb), N(claimrewards), mvo()("owner", "defproducerb")));
    }
 
-   // test stability over a year
+
+   // test change in network usage level to 5%
    {
-      regproducer(N(defproducerb));
-      regproducer(N(defproducerc));
-      const asset   initial_supply  = get_token_supply();
-      const int64_t initial_savings = get_balance(N(eosio.saving)).get_amount();
-      const int64_t initial_usage = get_balance(N(eosio.usage)).get_amount();
+      const auto     initial_global_state      = get_global_state();
+      const uint64_t initial_distribution_time = initial_global_state["last_inflation_distribution"].as_uint64();
+      const int64_t  initial_savings           = get_balance(N(eosio.saving)).get_amount();
+      const int64_t  initial_usage             = get_balance(N(eosio.usage)).get_amount();
+      const int64_t  initial_ppay              = get_balance(N(eosio.ppay)).get_amount();
 
-      for (uint32_t i = 0; i < 7 * 52; ++i) {
-         produce_block(fc::seconds(8 * 3600));
-         produce_block(fc::seconds(8 * 3600));
-         produce_block(fc::seconds(8 * 3600));
-         produce_blocks(1);
-      }
+      const asset initial_balance = get_balance(N(defproducera));
 
-      BOOST_REQUIRE_EQUAL(success(), push_action(N(defproducerc), N(claimrewards), mvo()("owner", "defproducerc")));
-      BOOST_REQUIRE_EQUAL(success(), push_action(N(defproducerb), N(claimrewards), mvo()("owner", "defproducerb")));
+      const asset initial_supply  = get_token_supply();
+
+      set_network_usage(5);
+
+      // produce for another day
+      produce_block(fc::minutes(60 * 24 + 10));
+      produce_blocks(1);
+
+      const auto global_state          = get_global_state();
+      const uint64_t distribution_time = global_state["last_inflation_distribution"].as_uint64();
+      const int64_t  saving            = get_balance(N(eosio.saving)).get_amount();
+      const int64_t  usage             = get_balance(N(eosio.usage)).get_amount();
+      const int64_t  ppay              = get_balance(N(eosio.ppay)).get_amount();
+
+      const asset supply  = get_token_supply();
+
+      auto usecs_between_distributions = distribution_time - initial_distribution_time;
+      int32_t secs_between_distributions = usecs_between_distributions/1000000;
+
+      auto inflation = int64_t( ( initial_supply.get_amount() * double(usecs_between_distributions) * continuous_rate ) / useconds_per_year );
+
+      BOOST_REQUIRE_EQUAL(inflation, supply.get_amount() - initial_supply.get_amount());
+      BOOST_REQUIRE_EQUAL(inflation, saving - initial_savings + usage - initial_usage + ppay);
+
+      const uint16_t producer_rate = 250 + 25 * 5;
+      auto max_to_producers   = inflation / 6;
+      auto to_producers       = (max_to_producers * producer_rate) / 1000;
+
+      int64_t to_savings          = max_to_producers + max_to_producers - to_producers;
+      int64_t to_usage            = inflation - to_producers - to_savings;
+
+      BOOST_REQUIRE_EQUAL(to_producers, ppay);
+      BOOST_REQUIRE_EQUAL(to_savings, saving - initial_savings);
+      BOOST_REQUIRE_EQUAL(to_usage, usage - initial_usage);
+      BOOST_REQUIRE(to_usage > 2 * (to_producers + to_savings));
+      
       BOOST_REQUIRE_EQUAL(success(), push_action(N(defproducera), N(claimrewards), mvo()("owner", "defproducera")));
+      
+      const asset balance = get_balance(N(defproducera));
+      BOOST_REQUIRE_EQUAL(balance.get_amount() - initial_balance.get_amount(), to_producers);
+      BOOST_REQUIRE_EQUAL(0,get_balance(N(eosio.ppay)).get_amount());
 
-      const asset   supply  = get_token_supply();
-      const int64_t savings = get_balance(N(eosio.saving)).get_amount();
-      const int64_t usage = get_balance(N(eosio.usage)).get_amount();
+   }   
 
-      // Amount issued per year is very close to the 5% inflation target. Small difference (500 tokens out of 50'000'000 issued)
-      // is due to compounding every 8 hours in this test as opposed to theoretical continuous compounding
-      std::cout << "###############diff interest " << int64_t(double(initial_supply.get_amount()) * double(0.06)) - (supply.get_amount() - initial_supply.get_amount()) << "\n";
-      std::cout << "###############calc interest " << int64_t(double(initial_supply.get_amount()) * double(0.06)) << "\n";
-      std::cout << "###############real interest " << (supply.get_amount() - initial_supply.get_amount()) << "\n";
-      std::cout << "\n";
-      std::cout << "###############diff interest " << int64_t(double(initial_supply.get_amount()) * double(0.01)) -  (savings - initial_savings) << "\n";
-      std::cout << "###############calc interest " << int64_t(double(initial_supply.get_amount()) * double(0.01)) << "\n";
-      std::cout << "###############real interest " << (savings - initial_savings) << "\n";
-      std::cout << "\n";
-      std::cout << "###############diff interest " << int64_t(double(initial_supply.get_amount()) * double(0.04)) -  (usage - initial_usage) << "\n";
-      std::cout << "###############calc interest " << int64_t(double(initial_supply.get_amount()) * double(0.04)) << "\n";
-      std::cout << "###############real interest " << (usage - initial_usage) << "\n";
+   // test change in network usage level to 30%
+   {
+      const auto     initial_global_state      = get_global_state();
+      const uint64_t initial_distribution_time = initial_global_state["last_inflation_distribution"].as_uint64();
+      const int64_t  initial_savings           = get_balance(N(eosio.saving)).get_amount();
+      const int64_t  initial_usage             = get_balance(N(eosio.usage)).get_amount();
+      const int64_t  initial_ppay              = get_balance(N(eosio.ppay)).get_amount();
 
+      const asset initial_balance = get_balance(N(defproducera));
 
-      BOOST_REQUIRE(500 * 10000 > int64_t(double(initial_supply.get_amount()) * double(0.06)) - (supply.get_amount() - initial_supply.get_amount()));
-      BOOST_REQUIRE(500 * 10000 > int64_t(double(initial_supply.get_amount()) * double(0.01)) - (savings - initial_savings));
-      BOOST_REQUIRE(500 * 10000 > int64_t(double(initial_supply.get_amount()) * double(0.04)) - (usage - initial_usage));
-      // Todo: producerpay equal 1/3 of savings
+      const asset initial_supply  = get_token_supply();
 
-   }
+      set_network_usage(31);
 
+      // produce for another day
+      produce_block(fc::minutes(60 * 24 + 10));
+      produce_blocks(1);
+
+      const auto global_state          = get_global_state();
+      const uint64_t distribution_time = global_state["last_inflation_distribution"].as_uint64();
+      const int64_t  saving            = get_balance(N(eosio.saving)).get_amount();
+      const int64_t  usage             = get_balance(N(eosio.usage)).get_amount();
+      const int64_t  ppay              = get_balance(N(eosio.ppay)).get_amount();
+
+      const asset supply  = get_token_supply();
+
+      auto usecs_between_distributions = distribution_time - initial_distribution_time;
+      int32_t secs_between_distributions = usecs_between_distributions/1000000;
+
+      auto inflation = int64_t( ( initial_supply.get_amount() * double(usecs_between_distributions) * continuous_rate ) / useconds_per_year );
+
+      BOOST_REQUIRE_EQUAL(inflation, supply.get_amount() - initial_supply.get_amount());
+      BOOST_REQUIRE_EQUAL(inflation, saving - initial_savings + usage - initial_usage + ppay);
+
+      auto to_producers           = inflation / 6;
+      int64_t to_savings          = to_producers;
+      int64_t to_usage            = inflation - to_producers - to_savings;
+
+      BOOST_REQUIRE_EQUAL(to_producers, ppay - initial_ppay);
+      BOOST_REQUIRE_EQUAL(to_savings, saving - initial_savings);
+      BOOST_REQUIRE_EQUAL(to_usage, usage - initial_usage);
+      BOOST_REQUIRE(to_usage >= 2 * (to_producers + to_savings));
+
+      
+      BOOST_REQUIRE_EQUAL(success(), push_action(N(defproducera), N(claimrewards), mvo()("owner", "defproducera")));
+      
+      const asset balance = get_balance(N(defproducera));
+      BOOST_REQUIRE_EQUAL(balance.get_amount() - initial_balance.get_amount(), to_producers);
+      BOOST_REQUIRE_EQUAL(0,get_balance(N(eosio.ppay)).get_amount());
+
+   } 
+
+   // test for 7 years
    {
       produce_block(fc::days(2555)); 
       produce_blocks(1);
@@ -894,6 +950,54 @@ BOOST_FIXTURE_TEST_CASE(producer_pay, eosio_system_tester, * boost::unit_test::t
       std::cout << "###############supply " << supply.get_amount() << "\n";
 
    }
+
+} FC_LOG_AND_RETHROW()
+
+BOOST_FIXTURE_TEST_CASE(inflation_year_stablility, eosio_system_tester, * boost::unit_test::tolerance(1e-10)) try {
+   activate_chain();
+
+   const double continuous_rate = 5.82729 / 100.;
+   const double usecs_per_year  = 52 * 7 * 24 * 3600 * 1000000ll;
+   const double secs_per_year   = 52 * 7 * 24 * 3600;
+   const uint64_t useconds_per_min      = 60 * uint64_t(1000000);
+   const uint64_t useconds_per_year     = secs_per_year*1000000ll;
+
+   const asset large_asset = core_from_string("80.0000");
+   create_account_with_resources( N(defproducera), config::system_account_name, core_from_string("1000.0000"), false, large_asset, large_asset );
+   create_account_with_resources( N(defproducerb), config::system_account_name, core_from_string("1000.0000"), false, large_asset, large_asset );
+   create_account_with_resources( N(defproducerc), config::system_account_name, core_from_string("1000.0000"), false, large_asset, large_asset );
+
+
+   BOOST_REQUIRE_EQUAL(success(), regproducer(N(defproducera)));
+   regproducer(N(defproducerb));
+   regproducer(N(defproducerc));
+   const asset   initial_supply  = get_token_supply();
+   const int64_t initial_savings = get_balance(N(eosio.saving)).get_amount();
+   const int64_t initial_usage = get_balance(N(eosio.usage)).get_amount();
+
+   for (uint32_t i = 0; i < 7 * 52; ++i) {
+      produce_block(fc::seconds(8 * 3600));
+      produce_block(fc::seconds(8 * 3600));
+      produce_block(fc::seconds(8 * 3600));
+      produce_blocks(1);
+   }
+
+   BOOST_REQUIRE_EQUAL(success(), push_action(N(defproducerc), N(claimrewards), mvo()("owner", "defproducerc")));
+   BOOST_REQUIRE_EQUAL(success(), push_action(N(defproducerb), N(claimrewards), mvo()("owner", "defproducerb")));
+   BOOST_REQUIRE_EQUAL(success(), push_action(N(defproducera), N(claimrewards), mvo()("owner", "defproducera")));
+
+   const asset   supply  = get_token_supply();
+   const int64_t savings = get_balance(N(eosio.saving)).get_amount();
+   const int64_t usage = get_balance(N(eosio.usage)).get_amount();
+   
+   // Amount issued per year is very close to the 6% inflation target. Small difference (50 tokens out of 60,000,000 issued)
+   // is due to compounding every 24 hours as opposed to theoretical continuous compounding
+   BOOST_REQUIRE(0 < int64_t(double(initial_supply.get_amount()) * double(0.06)) - (supply.get_amount() - initial_supply.get_amount()));
+   BOOST_REQUIRE(50 * 10000 > int64_t(double(initial_supply.get_amount()) * double(0.06)) - (supply.get_amount() - initial_supply.get_amount()));
+   BOOST_REQUIRE(0 < int64_t(double(initial_supply.get_amount()) * double(0.0175)) - (savings - initial_savings));
+   BOOST_REQUIRE(50 * 10000 > int64_t(double(initial_supply.get_amount()) * double(0.0175)) - (savings - initial_savings));
+   BOOST_REQUIRE(0 < int64_t(double(initial_supply.get_amount()) * double(0.04)) - (usage - initial_usage));
+   BOOST_REQUIRE(50 * 10000 > int64_t(double(initial_supply.get_amount()) * double(0.04)) - (usage - initial_usage));
 
 } FC_LOG_AND_RETHROW()
 
@@ -905,7 +1009,7 @@ BOOST_FIXTURE_TEST_CASE(multiple_producer_pay, eosio_system_tester, * boost::uni
 
    const int64_t secs_per_year  = 52 * 7 * 24 * 3600;
    const double  usecs_per_year = secs_per_year * 1000000;
-   const double  cont_rate      = 5.82729/100.;
+   const double  cont_rate      = 5.827323 / 100.;
 
    const asset net = core_from_string("80.0000");
    const asset cpu = core_from_string("80.0000");
@@ -946,13 +1050,6 @@ BOOST_FIXTURE_TEST_CASE(multiple_producer_pay, eosio_system_tester, * boost::uni
 
    }
 
-   // give a chance for everyone to produce blocks
-   {
-      std::cout << "############### producers " << producer_names.size() << "\n";
-
-   }
-
-
    {
       const uint32_t prod_index = 0;
       const auto prod_name = producer_names[prod_index];
@@ -975,18 +1072,13 @@ BOOST_FIXTURE_TEST_CASE(multiple_producer_pay, eosio_system_tester, * boost::uni
       const uint64_t distribution_time = global_state["last_inflation_distribution"].as_uint64();
       const int64_t  saving            = get_balance(N(eosio.saving)).get_amount();
       const int64_t  usage             = get_balance(N(eosio.usage)).get_amount();
-      const int64_t  initial_ppay              = get_balance(N(eosio.ppay)).get_amount();
+      const int64_t  initial_ppay      = get_balance(N(eosio.ppay)).get_amount();
       const asset    balance           = get_balance(prod_name);
 
       const uint64_t usecs_between_fills = distribution_time - initial_distribution_time;
       const int32_t secs_between_fills = static_cast<int32_t>(usecs_between_fills / 1000000);
 
       const int64_t expected_supply_growth = static_cast<int64_t>(initial_supply.get_amount() * double(usecs_between_fills) * cont_rate / usecs_per_year);
-
-      std::cout << "&&&&&&&&&&&&&& expected growth: " << expected_supply_growth << "\n";
-      std::cout << "&&&&&&&&&&&&&& ppay: " << initial_ppay << "\n";
-      std::cout << "&&&&&&&&&&&&&& usage: " << usage << "\n";
-      std::cout << "############### producers " << producer_names.size() << "\n";
 
       BOOST_REQUIRE_EQUAL(expected_supply_growth, saving + usage + initial_ppay);
 

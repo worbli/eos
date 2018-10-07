@@ -5,7 +5,7 @@
 namespace eosiosystem {
 
    const int64_t  min_activated_stake   = 150'000'000'0000;
-   const double   continuous_rate       = 0.0582729; // 6% annual rate
+   const double   continuous_rate       = 0.05827323; // 6% annual rate
    const uint32_t blocks_per_year       = 52*7*24*2*3600;   // half seconds per year
    const uint32_t seconds_per_year      = 52*7*24*3600;
    const uint32_t blocks_per_day        = 2 * 24 * 3600;
@@ -54,12 +54,14 @@ namespace eosiosystem {
 
       /** Percentages are fixed point with a denominator of 1000 */
          const uint16_t base_producer_rate = 250; // 25%
+         const uint16_t incremental_usage_rate = 25; // 2.5%
+
          uint16_t actual_producer_rate = 0;   
 
          if(_gstate.network_usage_level == 0)
             actual_producer_rate = base_producer_rate;
          else if((_gstate.network_usage_level < 30))
-            actual_producer_rate = base_producer_rate + 25 * _gstate.network_usage_level;
+            actual_producer_rate = base_producer_rate + incremental_usage_rate * _gstate.network_usage_level;
          else
             actual_producer_rate = 1000;
 
