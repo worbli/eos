@@ -75,9 +75,7 @@ namespace eosiosystem {
       require_auth( _self );
       auto prod = _producers.find( producer );
       eosio_assert( prod != _producers.end(), "producer not found" );
-      _producers.modify( prod, 0, [&](auto& p) {
-            p.deactivate();
-         });
+      _producers.erase( prod );
    }
 
    // worbli admin
