@@ -1118,10 +1118,11 @@ BOOST_FIXTURE_TEST_CASE(multiple_producer_pay, eosio_system_tester, * boost::uni
                            push_action(config::system_account_name, N(rmvproducer), mvo()("producer", prod_name) ) );
 
       produce_blocks(3 * 21 * 12);
-      info = get_producer_info(prod_name);
-      BOOST_REQUIRE( !info["is_active"].as<bool>() );
-      BOOST_REQUIRE( fc::crypto::public_key() == fc::crypto::public_key(info["producer_key"].as_string()) );
-      BOOST_REQUIRE_EQUAL( wasm_assert_msg("producer does not have an active key"),
+      BOOST_REQUIRE_EQUAL( true, get_producer_info(prod_name).is_null() );
+      //info = get_producer_info(prod_name);
+      //BOOST_REQUIRE( !info["is_active"].as<bool>() );
+      //BOOST_REQUIRE( fc::crypto::public_key() == fc::crypto::public_key(info["producer_key"].as_string()) );
+      BOOST_REQUIRE_EQUAL( wasm_assert_msg("unable to find key"),
                            push_action(prod_name, N(claimrewards), mvo()("owner", prod_name) ) );
 
 

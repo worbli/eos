@@ -49,7 +49,7 @@ namespace eosiosystem {
    }
 
    void system_contract::unregprod( const account_name producer ) {
-      require_auth( N( _self ) );
+      require_auth( _self );
 
       const auto& prod = _producers.get( producer, "producer not found" );
 
