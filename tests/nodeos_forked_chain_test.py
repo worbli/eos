@@ -123,7 +123,7 @@ killEosInstances=not dontKill
 killWallet=not dontKill
 
 WalletdName="keosd"
-ClientName="cleos"
+ClientName="worbli"
 
 try:
     TestHelper.printSystemInfo("BEGIN")
@@ -179,10 +179,14 @@ try:
 
 
     # ***   identify each node (producers and non-producing node)   ***
+    cluster.getNode(0).pushMessage("eosio", "togglesched", "{\"is_active\":\"1\"}", "--permission eosio")
 
     nonProdNode=None
     prodNodes=[]
     producers=[]
+    contract="eosio"
+    action="addproducer"
+    opts="--permission eosio"
     for i in range(0, totalNodes):
         node=cluster.getNode(i)
         node.producers=Cluster.parseProducers(i)
@@ -196,6 +200,8 @@ try:
                 Utils.errorExit("More than one non-producing nodes")
         else:
             for prod in node.producers:
+                data="{\"producer\":\"%s\"}" % (cluster.defProducerAccounts[prod].name)
+                trans=node.pushMessage(contract, action, data, opts)
                 trans=node.regproducer(cluster.defProducerAccounts[prod], "http::/mysite.com", 0, waitForTransBlock=False, exitOnError=True)
 
             prodNodes.append(node)
@@ -214,16 +220,16 @@ try:
         node.transferFunds(cluster.eosioAccount, account, transferAmount, "test transfer")
         trans=node.delegatebw(account, 20000000.0000, 20000000.0000, exitOnError=True)
 
-
+    #trans=node.pushMessage("eosio", "togglesched", "{\"is_active\":\"1\"}", "--permission eosio")
     # ***   vote using accounts   ***
 
     #verify nodes are in sync and advancing
     cluster.waitOnClusterSync(blockAdvancing=5)
-    index=0
-    for account in accounts:
-        Print("Vote for producers=%s" % (producers))
-        trans=prodNodes[index % len(prodNodes)].vote(account, producers)
-        index+=1
+    #index=0
+    #for account in accounts:
+    #    Print("Vote for producers=%s" % (producers))
+    #    trans=prodNodes[index % len(prodNodes)].vote(account, producers)
+    #    index+=1
 
 
     # ***   Identify a block where production is stable   ***
@@ -345,6 +351,7 @@ try:
     firstDivergence=analyzeBPs(blockProducers0, blockProducers1, expectDivergence=True)
     # Nodes should not have diverged till the last block
     if firstDivergence!=blockNum:
+        Print("Expected to diverge at %s, but diverged at %s." % (firstDivergence, blockNum))
         Utils.errorExit("Expected to diverge at %s, but diverged at %s." % (firstDivergence, blockNum))
     blockProducers0=[]
     blockProducers1=[]
