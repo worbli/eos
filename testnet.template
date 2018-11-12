@@ -44,9 +44,9 @@ sleep 1
 
 ecmd () {
     echo ===== Start: $step ============ >> $logfile
-    echo executing: cleos --wallet-url $wdurl --url http://$bioshost:$biosport $* | tee -a $logfile
+    echo executing: worbli --wallet-url $wdurl --url http://$bioshost:$biosport $* | tee -a $logfile
     echo ----------------------- >> $logfile
-    programs/cleos/cleos  --wallet-url $wdurl --url http://$bioshost:$biosport $* >> $logfile 2>&1
+    programs/worbli/worbli  --wallet-url $wdurl --url http://$bioshost:$biosport $* >> $logfile 2>&1
     echo ==== End: $step ============== >> $logfile
     step=$(($step + 1))
 }
@@ -56,9 +56,10 @@ wcmd () {
 }
 
 cacmd () {
-    programs/cleos/cleos  --wallet-url $wdurl --url http://$bioshost:$biosport system newaccount --transfer --stake-net "10000000.0000 SYS" --stake-cpu "10000000.0000 SYS"  --buy-ram "10000000.0000 SYS" eosio $* >> $logfile 2>&1
-    ecmd system regproducer $1 $2
-    ecmd system voteproducer prods $1 $1
+    programs/worbli/worbli  --wallet-url $wdurl --url http://$bioshost:$biosport system newaccount --transfer --stake-net "10000000.0000 SYS" --stake-cpu "10000000.0000 SYS"  --buy-ram "10000000.0000 SYS" eosio $* >> $logfile 2>&1
+    ecmd push action eosio addproducer "{\"producer\":\"$1\"}" -p eosio >> $logfile 2>&1
+    ecmd system regproducer $1 $2 >> $logfile 2>&1
+    #ecmd system voteproducer prods $1 $1
 }
 
 sleep 2
@@ -99,11 +100,11 @@ ecmd set contract eosio.msig contracts/eosio.msig eosio.msig.wasm eosio.msig.abi
 ecmd set contract eosio.sudo contracts/eosio.sudo eosio.sudo.wasm eosio.sudo.abi
 
 echo ===== Start: $step ============ >> $logfile
-echo executing: cleos --wallet-url $wdurl --url http://$bioshost:$biosport push action eosio.token create '[ "eosio", "10000000000.0000 SYS" ]' -p eosio.token | tee -a $logfile
-echo executing: cleos --wallet-url $wdurl --url http://$bioshost:$biosport push action eosio.token issue '[ "eosio", "1000000000.0000 SYS", "memo" ]' -p eosio | tee -a $logfile
+echo executing: worbli --wallet-url $wdurl --url http://$bioshost:$biosport push action eosio.token create '[ "eosio", "10000000000.0000 SYS" ]' -p eosio.token | tee -a $logfile
+echo executing: worbli --wallet-url $wdurl --url http://$bioshost:$biosport push action eosio.token issue '[ "eosio", "1000000000.0000 SYS", "memo" ]' -p eosio | tee -a $logfile
 echo ----------------------- >> $logfile
-programs/cleos/cleos --wallet-url $wdurl --url http://$bioshost:$biosport push action eosio.token create '[ "eosio", "10000000000.0000 SYS" ]' -p eosio.token >> $logfile 2>&1
-programs/cleos/cleos --wallet-url $wdurl --url http://$bioshost:$biosport push action eosio.token issue '[ "eosio", "1000000000.0000 SYS", "memo" ]' -p eosio >> $logfile 2>&1
+programs/worbli/worbli --wallet-url $wdurl --url http://$bioshost:$biosport push action eosio.token create '[ "eosio", "10000000000.0000 SYS" ]' -p eosio.token >> $logfile 2>&1
+programs/worbli/worbli --wallet-url $wdurl --url http://$bioshost:$biosport push action eosio.token issue '[ "eosio", "1000000000.0000 SYS", "memo" ]' -p eosio >> $logfile 2>&1
 echo ==== End: $step ============== >> $logfile
 step=$(($step + 1))
 
