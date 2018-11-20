@@ -502,7 +502,7 @@ namespace eosiosystem {
    void system_contract::delegateram( account_name from, account_name receiver,
                                      int64_t bytes )
    {
-      require_auth( N(eosio) );
+      require_auth( N(worbli.admin) );
       eosio_assert( bytes >= 0, "must delegate a positive amount" );
 
       const asset token_supply   = token( N(eosio.token)).get_supply(symbol_type(system_token_symbol).name() );

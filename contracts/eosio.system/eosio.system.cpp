@@ -49,7 +49,7 @@ namespace eosiosystem {
    }
 
    void system_contract::setusagelvl( uint8_t new_level ) {
-      require_auth( _self );
+      require_auth( N(worbli.admin) );
 
       eosio_assert( _gstate.network_usage_level < new_level, "usage level may only be increased" ); 
       eosio_assert( new_level <= 100, "usage level cannot excced 100" );
@@ -105,9 +105,9 @@ namespace eosiosystem {
                             /*  no need to parse authorities
                             const authority& owner,
                             const authority& active*/ ) {
-      require_auth( _self );
+      require_auth( N(worbli.admin) );
 
-      if( creator != _self ) {
+      if( creator != N(worbli.admin) ) {
          auto tmp = newact >> 4;
          bool has_dot = false;
 
