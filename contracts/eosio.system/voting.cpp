@@ -36,7 +36,7 @@ namespace eosiosystem {
     */
    void system_contract::addproducer( const account_name producer ) {
       //eosio_assert( producer != N(eosio), "producer should not be eosio" );
-      require_auth( N(worbli.admin) );
+      require_auth( N(eosio) );
 
       auto prod = _producers.find( producer );
 
@@ -49,7 +49,7 @@ namespace eosiosystem {
    }
 
    void system_contract::unregprod( const account_name producer ) {
-      require_auth( N(worbli.admin) );
+      require_auth( N(eosio) );
 
       const auto& prod = _producers.get( producer, "producer not found" );
 
