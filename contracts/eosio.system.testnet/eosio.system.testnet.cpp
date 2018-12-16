@@ -105,22 +105,6 @@ namespace eosiosystem {
                             /*  no need to parse authorities
                             const authority& owner,
                             const authority& active*/ ) {
-      require_auth( N(worbli.admin) );
-
-      if( creator != N(worbli.admin) ) {
-         auto tmp = newact >> 4;
-         bool has_dot = false;
-
-         for( uint32_t i = 0; i < 12; ++i ) {
-           has_dot |= !(tmp & 0x1f);
-           tmp >>= 5;
-         }
-         if( has_dot ) { // or is less than 12 characters
-            auto suffix = eosio::name_suffix(newact);
-            eosio_assert( suffix =! newact, "account names must be 12 characters" );        
-            eosio_assert( creator == suffix, "only suffix may create this account" );       
-         }
-      }
 
       user_resources_table  userres( _self, newact);
 
