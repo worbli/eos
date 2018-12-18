@@ -185,7 +185,7 @@ namespace eosiosystem {
    void system_contract::buyrambytes( account_name payer, account_name receiver, uint32_t bytes ) {
 
      // Todo: Take closer look at type casts
-
+      eosio_assert( payer == N(worbli.admin) , "only worbli.admin can purchase RAM" );
       const asset token_supply   = token( N(eosio.token)).get_supply(symbol_type(system_token_symbol).name() );
       const uint64_t token_precision = token_supply.symbol.precision();
       const uint64_t bytes_per_token = uint64_t((_gstate.max_ram_size / (double)token_supply.amount) * pow(10,token_precision));
@@ -205,10 +205,10 @@ namespace eosiosystem {
     *  priced using the bancor algorithm such that price-per-byte with a constant reserve ratio of 100:1.
     */
    void system_contract::buyram( account_name payer, account_name receiver, asset quant )
-   {
-      require_auth( payer );
+   {      
+      //require_auth( payer );
+      eosio_assert( payer == N(worbli.admin) , "only worbli.admin can purchase RAM" );
       eosio_assert( quant.amount > 0, "must purchase a positive amount" );
-
 
       const asset token_supply   = token( N(eosio.token)).get_supply(symbol_type(system_token_symbol).name() );
       const uint64_t token_precision = token_supply.symbol.precision();
