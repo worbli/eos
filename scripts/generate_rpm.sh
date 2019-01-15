@@ -1,6 +1,6 @@
 #! /bin/bash
 
-NAME="${PROJECT}-${VERSION}.x86_64"
+NAME="${PROJECT}-${VERSION}-1"
 PREFIX="usr"
 SPREFIX=${PREFIX}
 SUBPREFIX="opt/${PROJECT}/${VERSION}"
@@ -13,7 +13,7 @@ export SSUBPREFIX
 
 bash generate_tarball.sh ${NAME}.tar.gz
 
-RPMBUILD=`realpath ~/rpmbuild/BUILDROOT/${NAME}-0.x86_64`
+RPMBUILD=`realpath ~/rpmbuild/BUILDROOT/${NAME}.x86_64`
 mkdir -p ${RPMBUILD} 
 FILES=$(tar -xvzf ${NAME}.tar.gz -C ${RPMBUILD})
 PFILES=""
@@ -26,15 +26,15 @@ echo -e ${PFILES} &> ~/rpmbuild/BUILD/filenames.txt
 
 mkdir -p ${PROJECT} 
 echo -e "Name: ${PROJECT} 
-Version: ${VERSION}.x86_64
+Version: ${VERSION}
 License: MIT
 Vendor: ${VENDOR} 
 Source: ${URL} 
-Requires: openssl-devel.x86_64, gmp-devel.x86_64, libstdc++-devel.x86_64, bzip2.x86_64, bzip2-devel.x86_64, mongodb.x86_64, mongodb-server.x86_64
+Requires: openssl-devel, gmp-devel, libstdc++-devel, bzip2, bzip2-devel, mongodb, mongodb-server
 URL: ${URL} 
 Packager: ${VENDOR} <${EMAIL}>
 Summary: ${DESC}
-Release: 0
+Release: 1
 %description
 ${DESC}
 %files -f filenames.txt" &> ${PROJECT}.spec
