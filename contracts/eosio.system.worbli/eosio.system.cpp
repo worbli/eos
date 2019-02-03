@@ -12,11 +12,29 @@ namespace eosiosystem {
    :native(s),
     _producers(_self,_self),
     _global(_self,_self),
-    _producer_pay(_self,_self)
-
+    _producer_pay(_self,_self),
+    _rammarket(_self,_self)
    {
       //print( "construct system\n" );
       _gstate = _global.exists() ? _global.get() : get_default_parameters();
+
+      auto itr = _rammarket.find(S(4,RAMCORE));
+
+      if( itr == _rammarket.end() ) {
+         auto system_token_supply   = eosio::token(N(eosio.token)).get_supply(eosio::symbol_type(system_token_symbol).name()).amount;
+         if( system_token_supply > 0 ) {
+            itr = _rammarket.emplace( _self, [&]( auto& m ) {
+               m.supply.amount = 100000000000000ll;
+               m.supply.symbol = S(4,RAMCORE);
+               m.base.balance.amount = int64_t(_gstate.free_ram());
+               m.base.balance.symbol = S(0,RAM);
+               m.quote.balance.amount = system_token_supply / 1000;
+               m.quote.balance.symbol = CORE_SYMBOL;
+            });
+         }
+      } else {
+         //print( "ram market already created" );
+      }
    }
 
    eosio_global_state system_contract::get_default_parameters() {
@@ -127,6 +145,7 @@ namespace eosiosystem {
       userres.emplace( newact, [&]( auto& res ) {
         res.owner = newact;
       });
+      
 
       set_resource_limits( newact, 0, 0, 0 );
    }

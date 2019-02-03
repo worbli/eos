@@ -9,6 +9,7 @@
 #include <eosiolib/time.hpp>
 #include <eosiolib/privileged.hpp>
 #include <eosiolib/singleton.hpp>
+#include <eosio.system/exchange_state.hpp>
 
 #include <string>
 
@@ -89,6 +90,7 @@ namespace eosiosystem {
          producer_pay_table     _producer_pay;
 
          eosio_global_state     _gstate;
+         rammarket              _rammarket;
 
       public:
          system_contract( account_name s );
