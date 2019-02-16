@@ -54,6 +54,7 @@ namespace eosiosystem {
       uint16_t              location = 0;
 
       uint64_t primary_key()const { return owner;                                   }
+      double   by_location()const { return (double)location;                        }
       bool     active()const      { return is_active;                               }
       void     deactivate()       { producer_key = public_key(); is_active = false; }
 
@@ -72,10 +73,12 @@ namespace eosiosystem {
       // explicit serialization macro is not necessary, used here only to improve compilation time
       EOSLIB_SERIALIZE( producer_pay, (owner)(earned_pay)(last_claim_time) )
    };
-
+  
    typedef eosio::multi_index< N(prodpay), producer_pay >  producer_pay_table;  
 
-   typedef eosio::multi_index< N(producers), producer_info >  producers_table;
+   typedef eosio::multi_index< N(producers), producer_info,
+                               indexed_by<N(prolocation), const_mem_fun<producer_info, double, &producer_info::by_location>  >
+                               >  producers_table;
 
    typedef eosio::singleton<N(global), eosio_global_state> global_state_singleton;
 
