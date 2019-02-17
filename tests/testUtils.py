@@ -18,7 +18,7 @@ class Utils:
     Debug=False
     FNull = open(os.devnull, 'w')
 
-    EosClientPath="programs/worbli/worbli"
+    EosClientPath="programs/cleos/cleos"
     MiscEosClientArgs="--no-auto-keosd"
 
     EosWalletName="keosd"

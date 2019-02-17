@@ -1,6 +1,7 @@
 #! /bin/bash
 
-binaries=(worbli
+binaries=(cleos
+          worbli
           eosio-abigen
           eosio-launcher
           eosio-s2wasm

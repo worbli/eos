@@ -66,6 +66,7 @@ fi
 
    install_symlinks() {
       printf "\\n\\tInstalling EOSIO Binary Symlinks\\n\\n"
+      create_symlink "cleos"
       create_symlink "worbli"
       create_symlink "eosio-abigen"
       create_symlink "eosio-launcher"

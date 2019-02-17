@@ -69,14 +69,14 @@ class bootseq_tester : public TESTER {
 public:
 
    fc::variant get_global_state() {
-      vector<char> data = get_row_by_account( N(eosio), N(eosio), N(global), N(global) );
+      vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, N(global), N(global) );
       if (data.empty()) std::cout << "\nData is empty\n" << std::endl;
       return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "eosio_global_state", data, abi_serializer_max_time );
 
    }
 
     auto buyram( name payer, name receiver, asset ram ) {
-       auto r = base_tester::push_action(N(eosio), N(buyram), payer, mvo()
+       auto r = base_tester::push_action(config::system_account_name, N(buyram), payer, mvo()
                     ("payer", payer)
                     ("receiver", receiver)
                     ("quant", ram)
@@ -86,7 +86,7 @@ public:
     }
 
     auto delegate_bandwidth( name from, name receiver, asset net, asset cpu, uint8_t transfer = 1) {
-       auto r = base_tester::push_action(N(eosio), N(delegatebw), from, mvo()
+       auto r = base_tester::push_action(config::system_account_name, N(delegatebw), from, mvo()
                     ("from", from )
                     ("receiver", receiver)
                     ("stake_net_quantity", net)
@@ -128,11 +128,11 @@ public:
     }
 
     auto register_producer(name producer) {
-        base_tester::push_action( N(eosio), N(addproducer), N(eosio), mvo()
+        base_tester::push_action( config::system_account_name, N(addproducer), N(eosio), mvo()
                           ("producer",  producer )
         ); 
 
-       auto r = base_tester::push_action(N(eosio), N(regproducer), producer, mvo()
+       auto r = base_tester::push_action(config::system_account_name, N(regproducer), producer, mvo()
                        ("producer",  name(producer))
                        ("producer_key", get_public_key( producer, "active" ) )
                        ("url", "" )
@@ -143,7 +143,7 @@ public:
     }
 
     auto activate_chain() {
-       auto r = base_tester::push_action(N(eosio), N(togglesched), N(eosio), mvo()
+       auto r = base_tester::push_action(config::system_account_name, N(togglesched), N(eosio), mvo()
                        ("is_active",  1 )
                     );
        produce_block();
@@ -152,7 +152,7 @@ public:
 
 
     auto undelegate_bandwidth( name from, name receiver, asset net, asset cpu ) {
-       auto r = base_tester::push_action(N(eosio), N(undelegatebw), from, mvo()
+       auto r = base_tester::push_action(config::system_account_name, N(undelegatebw), from, mvo()
                     ("from", from )
                     ("receiver", receiver)
                     ("unstake_net_quantity", net)
@@ -170,7 +170,7 @@ public:
        wdump((account));
         set_code(account, wast, signer);
         set_abi(account, abi, signer);
-        if (account == N(eosio)) {
+        if (account == config::system_account_name) {
            const auto& accnt = control->db().get<account_object,by_name>( account );
            abi_def abi_definition;
            BOOST_REQUIRE_EQUAL(abi_serializer::to_abi(accnt.abi, abi_definition), true);
@@ -221,11 +221,11 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
         // Create genesis accounts
         for( const auto& a : test_genesis ) {
-           create_account( a.aname, N(eosio) );
+           create_account( a.aname, config::system_account_name );
         }
 
         // Set eosio.system to eosio
-        set_code_abi(N(eosio), eosio_system_wast, eosio_system_abi);
+        set_code_abi(config::system_account_name, eosio_system_wast, eosio_system_abi);
 
         // Buy ram and stake cpu and net for each genesis accounts
         for( const auto& a : test_genesis ) {
@@ -234,7 +234,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
            auto net = (ib - ram) / 2;
            auto cpu = ib - net - ram;
 
-           auto r = buyram(N(eosio), a.aname, asset(ram));
+           auto r = buyram(config::system_account_name, a.aname, asset(ram));
            BOOST_REQUIRE( !r->except_ptr );
 
            r = delegate_bandwidth(N(eosio.stake), a.aname, asset(net), asset(cpu));
