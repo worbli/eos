@@ -186,17 +186,12 @@ try:
 
     Print("Wallet \"%s\" password=%s." % (testWalletName, testWallet.password.encode("utf-8")))
 
-    # activate producer schedule
-    cluster.getNode(0).pushMessage("eosio", "togglesched", "{\"is_active\":\"1\"}", "--permission eosio")
 
     # ***   identify each node (producers and non-producing node)   ***
 
     nonProdNode=None
     prodNodes=[]
     producers=[]
-    contract="eosio"
-    action="addproducer"
-    opts="--permission eosio"
     for i in range(0, totalNodes):
         node=cluster.getNode(i)
         node.producers=Cluster.parseProducers(i)
@@ -210,8 +205,6 @@ try:
                 Utils.errorExit("More than one non-producing nodes")
         else:
             for prod in node.producers:
-                data="{\"producer\":\"%s\"}" % (cluster.defProducerAccounts[prod].name)
-                trans=node.pushMessage(contract, action, data, opts)
                 trans=node.regproducer(cluster.defProducerAccounts[prod], "http::/mysite.com", 0, waitForTransBlock=False, exitOnError=True)
 
             prodNodes.append(node)
@@ -236,10 +229,10 @@ try:
     #verify nodes are in sync and advancing
     cluster.waitOnClusterSync(blockAdvancing=5)
     index=0
-#    for account in accounts:
-#        Print("Vote for producers=%s" % (producers))
-#        trans=prodNodes[index % len(prodNodes)].vote(account, producers, waitForTransBlock=True)
-#        index+=1
+    for account in accounts:
+        Print("Vote for producers=%s" % (producers))
+        trans=prodNodes[index % len(prodNodes)].vote(account, producers, waitForTransBlock=True)
+        index+=1
 
 
     # ***   Identify a block where production is stable   ***
@@ -281,8 +274,7 @@ try:
             blockProducer=node.getBlockProducerByNum(blockNum)
 
         if producerToSlot[lastBlockProducer]["count"]!=inRowCountPerProducer:
-            Print("Producer %s, in slot %d, expected to produce %d blocks but produced %d blocks" % (blockProducer, inRowCountPerProducer, producerToSlot[lastBlockProducer]["count"],inRowCountPerProducer))
-            Utils.errorExit("Producer %s, in slot %d, expected to produce %d blocks but produced %d blocks" % (blockProducer, inRowCountPerProducer, producerToSlot[lastBlockProducer]["count"],inRowCountPerProducer))
+            Utils.errorExit("Producer %s, in slot %d, expected to produce %d blocks but produced %d blocks" % (blockProducer, inRowCountPerProducer, producerToSlot[lastBlockProducer]["count"]))
 
         if blockProducer==productionCycle[0]:
             break

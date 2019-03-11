@@ -46,8 +46,8 @@ public:
 
       produce_blocks( 2 );
 
-      create_accounts({ N(eosio.token), N(eosio.ppay), N(eosio.usage), N(eosio.stake),
-               N(eosio.saving), N(eosio.names) });
+      create_accounts({ N(eosio.token), N(eosio.ram), N(eosio.ramfee), N(eosio.stake),
+               N(eosio.bpay), N(eosio.vpay), N(eosio.saving), N(eosio.names) });
 
 
       produce_blocks( 100 );
@@ -78,9 +78,9 @@ public:
 
       produce_blocks();
 
-      create_account_with_resources( N(alice1111111), config::system_account_name, core_from_string("1000.0000"), false );
-      create_account_with_resources( N(bob111111111), config::system_account_name, core_from_string("450.0000"), false );
-      create_account_with_resources( N(carol1111111), config::system_account_name, core_from_string("1000.0000"), false );
+      create_account_with_resources( N(alice1111111), config::system_account_name, core_from_string("1.0000"), false );
+      create_account_with_resources( N(bob111111111), config::system_account_name, core_from_string("0.4500"), false );
+      create_account_with_resources( N(carol1111111), config::system_account_name, core_from_string("1.0000"), false );
 
       BOOST_REQUIRE_EQUAL( core_from_string("1000000000.0000"), get_balance("eosio")  + get_balance("eosio.ramfee") + get_balance("eosio.stake") + get_balance("eosio.ram") );
    }
@@ -177,7 +177,7 @@ public:
       set_transaction_headers(trx);
       asset cpu = core_from_string("80.0000");
       asset net = core_from_string("80.0000");
-      asset ram = core_from_string("1000.0000");
+      asset ram = core_from_string("1.0000");
 
       for (const auto& a: accounts) {
          authority owner_auth( get_public_key( a, "owner" ) );
@@ -307,9 +307,6 @@ public:
    }
 
    action_result regproducer( const account_name& acnt, int params_fixture = 1 ) {
-      push_action( N(eosio), N(addproducer), mvo()
-                          ("producer",  acnt )
-      ); 
       action_result r = push_action( acnt, N(regproducer), mvo()
                           ("producer",  acnt )
                           ("producer_key", get_public_key( acnt, "active" ) )
@@ -348,7 +345,7 @@ public:
 
    fc::variant get_producer_info( const account_name& act ) {
       vector<char> data = get_row_by_account( config::system_account_name, config::system_account_name, N(producers), act );
-      return data.empty() ? fc::variant() : abi_ser.binary_to_variant( "producer_info", data, abi_serializer_max_time );
+      return abi_ser.binary_to_variant( "producer_info", data, abi_serializer_max_time );
    }
 
    void create_currency( name contract, name manager, asset maxsupply ) {
@@ -451,7 +448,6 @@ public:
             BOOST_REQUIRE_EQUAL( success(), regproducer(p) );
          }
       }
-      activate_chain();
       produce_blocks( 250);
 
       auto trace_auth = TESTER::push_action(config::system_account_name, updateauth::get_name(), config::system_account_name, mvo()
@@ -471,6 +467,12 @@ public:
          transfer( config::system_account_name, "alice1111111", core_from_string("100000000.0000"), config::system_account_name );
          BOOST_REQUIRE_EQUAL(success(), stake( "alice1111111", core_from_string("30000000.0000"), core_from_string("30000000.0000") ) );
          BOOST_REQUIRE_EQUAL(success(), buyram( "alice1111111", "alice1111111", core_from_string("30000000.0000") ) );
+         BOOST_REQUIRE_EQUAL(success(), push_action(N(alice1111111), N(voteproducer), mvo()
+                                                    ("voter",  "alice1111111")
+                                                    ("proxy", name(0).to_string())
+                                                    ("producers", vector<account_name>(producer_names.begin(), producer_names.begin()+21))
+                             )
+         );
       }
       produce_blocks( 250 );
 
@@ -479,18 +481,6 @@ public:
       BOOST_REQUIRE_EQUAL( name("defproducera"), producer_keys[0].producer_name );
 
       return producer_names;
-   }
-
-   void activate_chain() {
-      push_action( N(eosio), N(togglesched), mvo()
-                          ("is_active",  1 )
-      ); 
-   }
-
-   void set_network_usage(int level) {
-      push_action( N(eosio), N(setusagelvl), mvo()
-                          ("new_level",  level )
-      ); 
    }
 
    void cross_15_percent_threshold() {

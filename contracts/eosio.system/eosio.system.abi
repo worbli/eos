@@ -168,14 +168,6 @@
          {"name":"transfer", "type":"bool"}
       ]
     },{
-      "name": "delegateram",
-      "base": "",
-      "fields": [
-         {"name":"from", "type":"account_name"},
-         {"name":"receiver", "type":"account_name"},
-         {"name":"ram_bytes", "type":"int64"}
-      ]
-    },{
       "name": "undelegatebw",
       "base": "",
       "fields": [
@@ -200,22 +192,12 @@
          {"name":"cpu_weight", "type":"asset"}
       ]
     },{
-      "name": "delegated_ram",
-      "base": "",
-      "fields": [
-         {"name":"from", "type":"account_name"},
-         {"name":"to", "type":"account_name"},
-         {"name":"ram_stake", "type":"asset"},
-         {"name":"ram_bytes", "type":"int64"}
-      ]
-    },{
       "name": "user_resources",
       "base": "",
       "fields": [
          {"name":"owner", "type":"account_name"},
          {"name":"net_weight", "type":"asset"},
          {"name":"cpu_weight", "type":"asset"},
-         {"name":"ram_stake", "type":"asset"},
          {"name":"ram_bytes", "type":"uint64"}
       ]
     },{
@@ -225,7 +207,6 @@
          {"name":"owner", "type":"account_name"},
          {"name":"net_weight", "type":"asset"},
          {"name":"cpu_weight", "type":"asset"},
-         {"name":"ram_stake", "type":"asset"},
          {"name":"ram_bytes", "type":"uint64"}
       ]
     },{
@@ -235,9 +216,7 @@
          {"name":"owner", "type":"account_name"},
          {"name":"request_time", "type":"time_point_sec"},
          {"name":"net_amount", "type":"asset"},
-         {"name":"cpu_amount", "type":"asset"},
-         {"name":"ram_amount", "type":"asset"},
-         {"name":"ram_bytes", "type":"uint64"}
+         {"name":"cpu_amount", "type":"asset"}
       ]
     },{
       "name": "blockchain_parameters",
@@ -271,32 +250,28 @@
          {"name":"total_ram_bytes_reserved",      "type":"uint64"},
          {"name":"total_ram_stake",               "type":"int64"},
          {"name":"last_producer_schedule_update", "type":"block_timestamp_type"},
-         {"name":"last_inflation_distribution",   "type":"uint64"},
+         {"name":"last_pervote_bucket_fill",      "type":"uint64"},
+         {"name":"pervote_bucket",                "type":"int64"},
+         {"name":"perblock_bucket",               "type":"int64"},
+         {"name":"total_unpaid_blocks",           "type":"uint32"},
          {"name":"total_activated_stake",         "type":"int64"},
          {"name":"thresh_activated_stake_time",   "type":"uint64"},
          {"name":"last_producer_schedule_size",   "type":"uint16"},
          {"name":"total_producer_vote_weight",    "type":"float64"},
-         {"name":"is_producer_schedule_active",   "type":"bool"},
-         {"name":"network_usage_level",           "type":"uint8"}
+         {"name":"last_name_close",               "type":"block_timestamp_type"}
       ]
     },{
       "name": "producer_info",
       "base": "",
       "fields": [
          {"name":"owner",           "type":"account_name"},
+         {"name":"total_votes",     "type":"float64"},
          {"name":"producer_key",    "type":"public_key"},
          {"name":"is_active",       "type":"bool"},
          {"name":"url",             "type":"string"},
-         {"name":"produced_blocks", "type":"uint64"},
+         {"name":"unpaid_blocks",   "type":"uint32"},
          {"name":"last_claim_time", "type":"uint64"},
          {"name":"location",        "type":"uint16"}
-      ]
-    },{
-      "name": "producer_pay",
-      "base": "",
-      "fields": [
-         {"name":"owner",           "type":"account_name"},
-         {"name":"earned_pay",      "type":"uint64"}
       ]
     },{
       "name": "regproducer",
@@ -314,28 +289,37 @@
         {"name":"producer",     "type":"account_name"}
       ]
     },{
-      "name": "addproducer",
-      "base": "",
-      "fields": [
-        {"name":"producer",     "type":"account_name"}
-      ]
-    },{
-      "name": "togglesched",
-      "base": "",
-      "fields": [
-        {"name":"is_active",     "type":"bool"}
-      ]
-    },{
       "name": "setram",
       "base": "",
       "fields": [
         {"name":"max_ram_size",     "type":"uint64"}
       ]
     },{
-      "name": "setusagelvl",
+      "name": "regproxy",
       "base": "",
       "fields": [
-        {"name":"new_level",     "type":"uint8"}
+        {"name":"proxy",     "type":"account_name"},
+        {"name":"isproxy",   "type":"bool"}
+      ]
+    },{
+      "name": "voteproducer",
+      "base": "",
+      "fields": [
+        {"name":"voter",     "type":"account_name"},
+        {"name":"proxy",     "type":"account_name"},
+        {"name":"producers", "type":"account_name[]"}
+      ]
+    },{
+      "name": "voter_info",
+      "base": "",
+      "fields": [
+        {"name":"owner",                "type":"account_name"},
+        {"name":"proxy",                "type":"account_name"},
+        {"name":"producers",            "type":"account_name[]"},
+        {"name":"staked",               "type":"int64"},
+        {"name":"last_vote_weight",     "type":"float64"},
+        {"name":"proxied_vote_weight",  "type":"float64"},
+        {"name":"is_proxy",             "type":"bool"}
       ]
     },{
       "name": "claimrewards",
@@ -411,7 +395,7 @@
         {"name":"base", "type":"connector"},
         {"name":"quote", "type":"connector"}
       ]
-    },{
+    }, {
        "name": "namebid_info",
        "base": "",
        "fields": [
@@ -475,10 +459,6 @@
       "type": "delegatebw",
       "ricardian_contract": ""
    },{
-      "name": "delegateram",
-      "type": "delegateram",
-      "ricardian_contract": ""
-   },{
       "name": "undelegatebw",
       "type": "undelegatebw",
       "ricardian_contract": ""
@@ -499,20 +479,16 @@
       "type": "bidname",
       "ricardian_contract": ""
    },{
-      "name": "setusagelvl",
-      "type": "setusagelvl",
-      "ricardian_contract": ""
-   },{
       "name": "unregprod",
       "type": "unregprod",
       "ricardian_contract": ""
    },{
-      "name": "addproducer",
-      "type": "addproducer",
+      "name": "regproxy",
+      "type": "regproxy",
       "ricardian_contract": ""
    },{
-      "name": "togglesched",
-      "type": "togglesched",
+      "name": "voteproducer",
+      "type": "voteproducer",
       "ricardian_contract": ""
    },{
       "name": "claimrewards",
@@ -560,6 +536,12 @@
       "key_names" : [],
       "key_types" : []
     },{
+      "name": "voters",
+      "type": "voter_info",
+      "index_type": "i64",
+      "key_names" : ["owner"],
+      "key_types" : ["account_name"]
+    },{
       "name": "userres",
       "type": "user_resources",
       "index_type": "i64",
@@ -568,12 +550,6 @@
     },{
       "name": "delband",
       "type": "delegated_bandwidth",
-      "index_type": "i64",
-      "key_names" : ["to"],
-      "key_types" : ["uint64"]
-    },{
-      "name": "delram",
-      "type": "delegated_ram",
       "index_type": "i64",
       "key_names" : ["to"],
       "key_types" : ["uint64"]
@@ -595,12 +571,6 @@
        "index_type": "i64",
        "key_names" : ["newname"],
        "key_types" : ["account_name"]
-    },{
-      "name": "prodpay",
-      "type": "producer_pay",
-      "index_type": "i64",
-      "key_names" : ["owner"],
-      "key_types" : ["uint64"]
     }
    ],
    "ricardian_clauses": [],

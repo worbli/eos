@@ -4,19 +4,38 @@
 #include "producer_pay.cpp"
 #include "delegate_bandwidth.cpp"
 #include "voting.cpp"
+#include "exchange_state.cpp"
 
 
 namespace eosiosystem {
 
    system_contract::system_contract( account_name s )
    :native(s),
+    _voters(_self,_self),
     _producers(_self,_self),
     _global(_self,_self),
-    _producer_pay(_self,_self)
-
+    _rammarket(_self,_self)
    {
       //print( "construct system\n" );
       _gstate = _global.exists() ? _global.get() : get_default_parameters();
+
+      auto itr = _rammarket.find(S(4,RAMCORE));
+
+      if( itr == _rammarket.end() ) {
+         auto system_token_supply   = eosio::token(N(eosio.token)).get_supply(eosio::symbol_type(system_token_symbol).name()).amount;
+         if( system_token_supply > 0 ) {
+            itr = _rammarket.emplace( _self, [&]( auto& m ) {
+               m.supply.amount = 100000000000000ll;
+               m.supply.symbol = S(4,RAMCORE);
+               m.base.balance.amount = int64_t(_gstate.free_ram());
+               m.base.balance.symbol = S(0,RAM);
+               m.quote.balance.amount = system_token_supply / 1000;
+               m.quote.balance.symbol = CORE_SYMBOL;
+            });
+         }
+      } else {
+         //print( "ram market already created" );
+      }
    }
 
    eosio_global_state system_contract::get_default_parameters() {
@@ -39,23 +58,18 @@ namespace eosiosystem {
       eosio_assert( max_ram_size < 1024ll*1024*1024*1024*1024, "ram size is unrealistic" );
       eosio_assert( max_ram_size > _gstate.total_ram_bytes_reserved, "attempt to set max below reserved" );
 
+      auto delta = int64_t(max_ram_size) - int64_t(_gstate.max_ram_size);
+      auto itr = _rammarket.find(S(4,RAMCORE));
+
       /**
        *  Increase or decrease the amount of ram for sale based upon the change in max
        *  ram size.
        */
+      _rammarket.modify( itr, 0, [&]( auto& m ) {
+         m.base.balance.amount += delta;
+      });
 
       _gstate.max_ram_size = max_ram_size;
-      _global.set( _gstate, _self );
-   }
-
-   void system_contract::setusagelvl( uint8_t new_level ) {
-      require_auth( N(eosio) );
-
-      eosio_assert( _gstate.network_usage_level < new_level, "usage level may only be increased" ); 
-      eosio_assert( new_level <= 100, "usage level cannot excced 100" );
-      eosio_assert( new_level > 0, "usage level cannot be negative" );
-
-      _gstate.network_usage_level = new_level;
       _global.set( _gstate, _self );
    }
 
@@ -75,19 +89,9 @@ namespace eosiosystem {
       require_auth( _self );
       auto prod = _producers.find( producer );
       eosio_assert( prod != _producers.end(), "producer not found" );
-      _producers.erase( prod );
-   }
-
-   // worbli admin
-   void system_contract::setprods( std::vector<eosio::producer_key> schedule ) {
-      (void)schedule; // schedule argument just forces the deserialization of the action data into vector<producer_key> (necessary check)
-      require_auth( _self );
-
-      constexpr size_t max_stack_buffer_size = 512;
-      size_t size = action_data_size();
-      char* buffer = (char*)( max_stack_buffer_size < size ? malloc(size) : alloca(size) );
-      read_action_data( buffer, size );
-      set_proposed_producers(buffer, size);
+      _producers.modify( prod, 0, [&](auto& p) {
+            p.deactivate();
+         });
    }
 
    void system_contract::bidname( account_name bidder, account_name newname, asset bid ) {
@@ -130,7 +134,6 @@ namespace eosiosystem {
       }
    }
 
-
    /**
     *  Called after a new account is created. This code enforces resource-limits rules
     *  for new accounts as well as new account naming conventions.
@@ -146,7 +149,7 @@ namespace eosiosystem {
                             const authority& owner,
                             const authority& active*/ ) {
 
-      if( creator != N(eosio) ) {
+      if( creator != _self ) {
          auto tmp = newact >> 4;
          bool has_dot = false;
 
@@ -156,8 +159,16 @@ namespace eosiosystem {
          }
          if( has_dot ) { // or is less than 12 characters
             auto suffix = eosio::name_suffix(newact);
-            eosio_assert( suffix =! newact, "account names must be 12 characters" );        
-            eosio_assert( creator == suffix, "only suffix may create this account" );       
+            if( suffix == newact ) {
+               name_bid_table bids(_self,_self);
+               auto current = bids.find( newact );
+               eosio_assert( current != bids.end(), "no active bid for name" );
+               eosio_assert( current->high_bidder == creator, "only highest bidder can claim" );
+               eosio_assert( current->high_bid < 0, "auction for name is not closed yet" );
+               bids.erase( current );
+            } else {
+               eosio_assert( creator == suffix, "only suffix may create this account" );
+            }
          }
       }
 
@@ -177,13 +188,11 @@ EOSIO_ABI( eosiosystem::system_contract,
      // native.hpp (newaccount definition is actually in eosio.system.cpp)
      (newaccount)(updateauth)(deleteauth)(linkauth)(unlinkauth)(canceldelay)(onerror)
      // eosio.system.cpp
-     (setram)(setparams)(setpriv)(rmvproducer)(bidname)(setusagelvl)
+     (setram)(setparams)(setpriv)(rmvproducer)(bidname)
      // delegate_bandwidth.cpp
-     (buyrambytes)(buyram)(sellram)(delegateram)(delegatebw)(undelegatebw)(refund)
+     (buyrambytes)(buyram)(sellram)(delegatebw)(undelegatebw)(refund)
      // voting.cpp
-     (regproducer)(unregprod)(addproducer)(togglesched)
+     (regproducer)(unregprod)(voteproducer)(regproxy)
      // producer_pay.cpp
      (onblock)(claimrewards)
-     // worbli admin
-     (setprods)
 )

@@ -62,6 +62,9 @@ std::vector<genesis_account> test_genesis( {
   {N(runnerup1),1'000'000'0000ll},
   {N(runnerup2),1'000'000'0000ll},
   {N(runnerup3),1'000'000'0000ll},
+  {N(minow1),        100'0000ll},
+  {N(minow2),          1'0000ll},
+  {N(minow3),          1'0000ll},
   {N(masses),800'000'000'0000ll}
 });
 
@@ -128,23 +131,11 @@ public:
     }
 
     auto register_producer(name producer) {
-        base_tester::push_action( config::system_account_name, N(addproducer), N(eosio), mvo()
-                          ("producer",  producer )
-        ); 
-
        auto r = base_tester::push_action(config::system_account_name, N(regproducer), producer, mvo()
                        ("producer",  name(producer))
                        ("producer_key", get_public_key( producer, "active" ) )
                        ("url", "" )
                        ("location", 0 )
-                    );
-       produce_block();
-       return r;
-    }
-
-    auto activate_chain() {
-       auto r = base_tester::push_action(config::system_account_name, N(togglesched), N(eosio), mvo()
-                       ("is_active",  1 )
                     );
        produce_block();
        return r;
@@ -189,7 +180,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
     try {
 
         // Create eosio.msig and eosio.token
-        create_accounts({N(eosio.msig), N(eosio.token), N(eosio.ppay), N(eosio.usage), N(eosio.stake), N(eosio.bpay), N(eosio.saving) });
+        create_accounts({N(eosio.msig), N(eosio.token), N(eosio.ram), N(eosio.ramfee), N(eosio.stake), N(eosio.vpay), N(eosio.bpay), N(eosio.saving) });
 
         // Set code for the following accounts:
         //  - eosio (code: eosio.bios) (already set by tester constructor)
@@ -230,7 +221,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         // Buy ram and stake cpu and net for each genesis accounts
         for( const auto& a : test_genesis ) {
            auto ib = a.initial_balance;
-           auto ram = 1000000;
+           auto ram = 1000;
            auto net = (ib - ram) / 2;
            auto cpu = ib - net - ram;
 
@@ -252,7 +243,25 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         for( auto pro : producer_candidates ) {
            register_producer(pro);
         }
- 
+
+        // Vote for producers
+        auto votepro = [&]( account_name voter, vector<account_name> producers ) {
+          std::sort( producers.begin(), producers.end() );
+          base_tester::push_action(config::system_account_name, N(voteproducer), voter, mvo()
+                                ("voter",  name(voter))
+                                ("proxy", name(0) )
+                                ("producers", producers)
+                     );
+        };
+        votepro( N(b1), { N(proda), N(prodb), N(prodc), N(prodd), N(prode), N(prodf), N(prodg),
+                           N(prodh), N(prodi), N(prodj), N(prodk), N(prodl), N(prodm), N(prodn),
+                           N(prodo), N(prodp), N(prodq), N(prodr), N(prods), N(prodt), N(produ)} );
+        votepro( N(whale2), {N(runnerup1), N(runnerup2), N(runnerup3)} );
+        votepro( N(whale3), {N(proda), N(prodb), N(prodc), N(prodd), N(prode)} );
+
+        // Total Stakes = b1 + whale2 + whale3 stake = (100,000,000 - 1,000) + (20,000,000 - 1,000) + (30,000,000 - 1,000)
+        BOOST_TEST(get_global_state()["total_activated_stake"].as<int64_t>() == 1499999997000);
+
         // No producers will be set, since the total activated stake is less than 150,000,000
         produce_blocks_for_n_rounds(2); // 2 rounds since new producer schedule is set when the first block of next round is irreversible
         auto active_schedule = control->head_block_state()->active_schedule;
@@ -264,12 +273,14 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
         // Since the total activated stake is less than 150,000,000, it shouldn't be possible to claim rewards
         BOOST_REQUIRE_THROW(claim_rewards(N(runnerup1)), eosio_assert_message_exception);
 
-        activate_chain();
+        // This will increase the total vote stake by (40,000,000 - 1,000)
+        votepro( N(whale4), {N(prodq), N(prodr), N(prods), N(prodt), N(produ)} );
+        BOOST_TEST(get_global_state()["total_activated_stake"].as<int64_t>() == 1899999996000);
+
         // Since the total vote stake is more than 150,000,000, the new producer set will be set
         produce_blocks_for_n_rounds(2); // 2 rounds since new producer schedule is set when the first block of next round is irreversible
         active_schedule = control->head_block_state()->active_schedule;
-        std::cout << "producer schedule size: " << active_schedule.producers.size() << "\n";
-        BOOST_REQUIRE(active_schedule.producers.size() == 24);
+        BOOST_REQUIRE(active_schedule.producers.size() == 21);
         BOOST_TEST(active_schedule.producers.at(0).producer_name == "proda");
         BOOST_TEST(active_schedule.producers.at(1).producer_name == "prodb");
         BOOST_TEST(active_schedule.producers.at(2).producer_name == "prodc");
@@ -305,7 +316,7 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
         // This should thrown an error, since block one can only unstake all his stake after 10 years
 
-        //BOOST_REQUIRE_THROW(undelegate_bandwidth(N(b1), N(b1), core_from_string("49999500.0000"), core_from_string("49999500.0000")), eosio_assert_message_exception);
+        BOOST_REQUIRE_THROW(undelegate_bandwidth(N(b1), N(b1), core_from_string("49999500.0000"), core_from_string("49999500.0000")), eosio_assert_message_exception);
 
         // Skip 10 years
         produce_block(first_june_2028 - control->head_block_time().time_since_epoch());
@@ -315,7 +326,8 @@ BOOST_FIXTURE_TEST_CASE( bootseq_test, bootseq_tester ) {
 
         return;
         produce_blocks(7000); /// produce blocks until virutal bandwidth can acomadate a small user
-
+        wlog("minow" );
+        votepro( N(minow1), {N(p1), N(p2)} );
 
 
 // TODO: Complete this test
