@@ -71,6 +71,10 @@ if(BUILD_MONGO_DB_PLUGIN)
   target_link_libraries( ${NODE_EXECUTABLE_NAME} PRIVATE -Wl,${whole_archive_flag} mongo_db_plugin -Wl,${no_whole_archive_flag} )
 endif()
 
+if(BUILD_ACCOUNT_SNAPSHOT_PLUGIN)
+  target_link_libraries( nodeos PRIVATE -Wl,${whole_archive_flag} account_snapshot_plugin -Wl,${no_whole_archive_flag} )
+endif()
+
 include(additionalPlugins)
 
 copy_bin( ${NODE_EXECUTABLE_NAME} )
